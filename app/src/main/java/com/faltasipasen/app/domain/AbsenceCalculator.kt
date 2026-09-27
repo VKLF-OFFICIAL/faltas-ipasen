@@ -15,14 +15,8 @@ object AbsenceCalculator {
         val courseStart = CourseDates.courseStartFor(cutoff)
         val countedUntil = minOf(today, cutoff)
 
-        // For course days, find the September 1 in the calendar year that's before cutoff
-        val calendarCourseStart = if (cutoff.monthValue >= 9)
-            LocalDate.of(cutoff.year, 9, 1)
-        else
-            LocalDate.of(cutoff.year - 1, 9, 1)
-
         val courseDays = calendar
-            .filter { it.lectivo && !it.date.isBefore(calendarCourseStart) && !it.date.isAfter(cutoff) }
+            .filter { it.lectivo && !it.date.isBefore(courseStart) && !it.date.isAfter(cutoff) }
             .map { it.date }
             .distinct()
         val counted = absences.filter { !it.date.isBefore(courseStart) && !it.date.isAfter(countedUntil) }

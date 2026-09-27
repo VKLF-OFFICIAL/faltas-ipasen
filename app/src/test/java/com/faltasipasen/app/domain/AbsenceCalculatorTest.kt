@@ -74,7 +74,8 @@ class AbsenceCalculatorTest {
     @Test
     fun `days and absences after the cutoff are ignored`() {
         val stats = calc(cutoff = LocalDate.of(2026, 9, 21), today = LocalDate.of(2027, 1, 1))
-        assertEquals(4.0, stats.subject("REDES").courseHours, 1e-9)
+        // Con corte en sept. 2026 el curso es 2025-26: el lunes 31/08/2026 sí cuenta.
+        assertEquals(6.0, stats.subject("REDES").courseHours, 1e-9)
         assertEquals(1.0, stats.subject("REDES").absentHours, 1e-9)
         assertEquals(LocalDate.of(2026, 9, 21), stats.countedUntil)
         assertEquals(LocalDate.of(2025, 9, 1), stats.courseStart)
