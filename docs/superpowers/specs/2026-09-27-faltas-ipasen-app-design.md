@@ -70,9 +70,11 @@ Componentes (Android nativo, Kotlin, Jetpack Compose):
   el uso de WebView en segundo plano, se usará un `Foreground Service`
   breve (con notificación discreta) durante la sincronización como
   alternativa.
-- **Room (base de datos local)**: horario semanal, calendario lectivo,
-  histórico de faltas, configuración (umbral, fecha de corte FCT, última
-  sincronización).
+- **Almacenamiento local**: cada sincronización sustituye entera la foto de
+  datos (horario, calendario lectivo, faltas), así que se guarda como un único
+  fichero JSON (`kotlinx.serialization`) en lugar de Room: no hay consultas ni
+  migraciones que justifiquen una base de datos. La configuración (umbral,
+  fecha de corte FCT, frecuencia, estado de avisos) va en `SharedPreferences`.
 - **`NotificationManager`**: notificación push cuando el % de faltas (global
   o por asignatura) cruza el umbral configurado; evita reavisar
   repetidamente por el mismo cruce.
@@ -85,18 +87,28 @@ Componentes (Android nativo, Kotlin, Jetpack Compose):
 
 ## Cálculo del porcentaje de faltas
 
-1. Horas totales = para cada día marcado como lectivo en el calendario de
-   iPasen entre el inicio de curso y `min(hoy, fecha_corte_FCT)`, sumar las
-   horas de clase que correspondan a ese día de la semana según el horario.
-2. % de faltas = (horas de falta acumuladas ÷ horas totales) × 100, tanto a
-   nivel global como desglosado por asignatura/módulo.
-3. El cálculo se implementa como lógica pura (independiente del scraping),
+1. Horas totales del curso = para cada día marcado como lectivo en el
+   calendario de iPasen entre el inicio de curso (1 de septiembre) y la
+   `fecha_corte_FCT` (incluidos los días futuros), sumar las horas de clase
+   que correspondan a ese día de la semana según el horario.
+2. Horas de falta = faltas registradas entre el inicio de curso y
+   `min(hoy, fecha_corte_FCT)`.
+3. % de faltas = (horas de falta ÷ horas totales del curso) × 100, tanto a
+   nivel global como desglosado por asignatura/módulo. Es la base del aviso.
+   (Decisión del usuario 2026-09-28: base = horas totales hasta el corte,
+   no horas dadas hasta hoy.)
+4. Además se muestra el margen: horas de falta que quedan antes de llegar al
+   umbral (`umbral% × horas totales − horas de falta`).
+5. El cálculo se implementa como lógica pura (independiente del scraping),
    para poder testearla con datos de horario/calendario/faltas simulados.
 
 ## Seguridad y almacenamiento
 
-- Credenciales de iPasen: `EncryptedSharedPreferences` respaldado por
-  Android Keystore. Nunca en texto plano, nunca en logs.
+- Credenciales de iPasen: cifradas con AES-256-GCM usando una clave del
+  Android Keystore (no exportable) y guardadas en `SharedPreferences`. Se usa
+  el Keystore directamente porque `EncryptedSharedPreferences`
+  (androidx.security-crypto) está deprecado. Nunca en texto plano, nunca en
+  logs. Copia de seguridad de Android desactivada (`allowBackup=false`).
 - Toda comunicación va directa a los dominios oficiales de iPasen/Séneca por
   HTTPS. No hay servidor intermedio propio ni de terceros; todo el
   procesamiento ocurre en el dispositivo.
