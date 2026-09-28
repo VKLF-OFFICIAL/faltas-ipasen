@@ -11,6 +11,8 @@ import com.faltasipasen.app.data.ThemeMode
 import com.faltasipasen.app.domain.AbsenceCalculator
 import com.faltasipasen.app.domain.AbsenceStats
 import com.faltasipasen.app.domain.Credentials
+import com.faltasipasen.app.domain.HistoryBuilder
+import com.faltasipasen.app.domain.HistoryDay
 import com.faltasipasen.app.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +25,7 @@ data class UiState(
     val hasCredentials: Boolean,
     val username: String,
     val stats: AbsenceStats?,
+    val history: List<HistoryDay>,
     val thresholdPercent: Double,
     val cutoffDate: LocalDate,
     val syncIntervalHours: Int,
@@ -52,10 +55,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val stats = snapshot?.let {
             AbsenceCalculator.calculate(it.schedule, it.calendar, it.absences, settings.cutoffDate(), graph.today())
         }
+        val history = snapshot?.let {
+            HistoryBuilder.build(it.schedule, it.absences, settings.cutoffDate(), graph.today())
+        }.orEmpty()
         return UiState(
             hasCredentials = credentials != null,
             username = credentials?.username.orEmpty(),
             stats = stats,
+            history = history,
             thresholdPercent = settings.thresholdPercent(),
             cutoffDate = settings.cutoffDate(),
             syncIntervalHours = settings.syncIntervalHours(),
@@ -91,6 +98,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun syncNow() = SyncScheduler.syncNow(getApplication())
+
+    fun setThemeMode(mode: ThemeMode) = graph.settings.setThemeMode(mode)
 
     fun logout() {
         SyncScheduler.cancelAll(getApplication())

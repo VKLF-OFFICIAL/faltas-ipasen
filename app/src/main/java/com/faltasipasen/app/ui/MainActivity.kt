@@ -10,15 +10,28 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.faltasipasen.app.ui.theme.FaltasTheme
@@ -45,41 +58,62 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { Home, Settings }
+private enum class Tab(val label: String, val icon: ImageVector) {
+    Summary("Resumen", Icons.Rounded.Home),
+    Settings("Ajustes", Icons.Rounded.Settings),
+}
 
 @Composable
 private fun AppRoot(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var screen by rememberSaveable { mutableStateOf(Screen.Home) }
+    var tab by rememberSaveable { mutableStateOf(Tab.Summary) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    when {
-        !state.hasCredentials -> SetupScreen(
+    if (!state.hasCredentials) {
+        SetupScreen(
             initialThreshold = state.thresholdPercent,
             initialCutoff = state.cutoffDate,
             onSubmit = { username, password, threshold, cutoff ->
                 viewModel.completeSetup(username, password, threshold, cutoff)
                 if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                screen = Screen.Home
+                tab = Tab.Summary
             },
         )
+        return
+    }
 
-        screen == Screen.Settings -> {
-            BackHandler { screen = Screen.Home }
-            SettingsScreen(
-                state = state,
-                onBack = { screen = Screen.Home },
-                onSave = { threshold, cutoff, interval, username, newPassword ->
-                    viewModel.saveSettings(threshold, cutoff, interval, username, newPassword)
-                    screen = Screen.Home
-                },
-                onLogout = {
-                    viewModel.logout()
-                    screen = Screen.Home
-                },
-            )
+    BackHandler(enabled = tab != Tab.Summary) { tab = Tab.Summary }
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                Tab.entries.forEach { item ->
+                    NavigationBarItem(
+                        selected = tab == item,
+                        onClick = { tab = item },
+                        icon = { Icon(item.icon, contentDescription = null) },
+                        label = { Text(item.label) },
+                    )
+                }
+            }
+        },
+    ) { padding ->
+        Crossfade(targetState = tab, animationSpec = tween(220), label = "tab", modifier = Modifier.padding(padding)) { current ->
+            when (current) {
+                Tab.Summary -> SummaryScreen(state, onSync = viewModel::syncNow, onOpenSubject = { })
+                Tab.Settings -> SettingsScreen(
+                    state = state,
+                    onBack = { tab = Tab.Summary },
+                    onSave = { threshold, cutoff, interval, username, newPassword ->
+                        viewModel.saveSettings(threshold, cutoff, interval, username, newPassword)
+                        tab = Tab.Summary
+                    },
+                    onLogout = {
+                        viewModel.logout()
+                        tab = Tab.Summary
+                    },
+                )
+            }
         }
-
-        else -> HomeScreen(state = state, onSync = viewModel::syncNow, onOpenSettings = { screen = Screen.Settings })
     }
 }
