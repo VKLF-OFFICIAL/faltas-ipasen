@@ -25,6 +25,8 @@ interface SettingsStore {
     fun setActiveAlertKeys(keys: Set<String>)
     fun lastError(): String?
     fun setLastError(message: String?)
+    fun themeMode(): ThemeMode
+    fun setThemeMode(value: ThemeMode)
 }
 
 class PrefsSettingsStore(
@@ -75,6 +77,12 @@ class PrefsSettingsStore(
         if (message == null) remove(KEY_LAST_ERROR) else putString(KEY_LAST_ERROR, message)
     }
 
+    override fun themeMode(): ThemeMode =
+        prefs.getString(KEY_THEME, null)?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
+            ?: ThemeMode.SYSTEM
+
+    override fun setThemeMode(value: ThemeMode) = write { putString(KEY_THEME, value.name) }
+
     private fun write(block: SharedPreferences.Editor.() -> Unit) {
         prefs.edit().apply(block).apply()
         version.update { it + 1 }
@@ -90,5 +98,6 @@ class PrefsSettingsStore(
         private const val KEY_INTERVAL = "intervalo_horas"
         private const val KEY_ACTIVE_ALERTS = "avisos_activos"
         private const val KEY_LAST_ERROR = "ultimo_error"
+        private const val KEY_THEME = "tema"
     }
 }

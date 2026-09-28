@@ -91,4 +91,17 @@ class PrefsSettingsStoreTest {
         assertEquals(15.0, store.thresholdPercent(), 0.0)
         assertTrue(prefs.values.isEmpty())
     }
+
+    @Test
+    fun `theme defaults to system and is persisted`() {
+        assertEquals(ThemeMode.SYSTEM, store.themeMode())
+        store.setThemeMode(ThemeMode.AMOLED)
+        assertEquals(ThemeMode.AMOLED, PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate.of(2026, 9, 28) }.themeMode())
+    }
+
+    @Test
+    fun `unknown stored theme falls back to system`() {
+        prefs.values["tema"] = "SEPIA"
+        assertEquals(ThemeMode.SYSTEM, store.themeMode())
+    }
 }

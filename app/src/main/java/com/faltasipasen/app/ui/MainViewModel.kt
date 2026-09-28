@@ -7,6 +7,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.faltasipasen.app.FaltasApp
 import com.faltasipasen.app.data.Snapshot
+import com.faltasipasen.app.data.ThemeMode
 import com.faltasipasen.app.domain.AbsenceCalculator
 import com.faltasipasen.app.domain.AbsenceStats
 import com.faltasipasen.app.domain.Credentials
@@ -28,6 +29,7 @@ data class UiState(
     val lastSyncMillis: Long?,
     val lastError: String?,
     val syncing: Boolean,
+    val themeMode: ThemeMode,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -60,6 +62,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             lastSyncMillis = snapshot?.syncedAtMillis,
             lastError = settings.lastError(),
             syncing = running,
+            themeMode = settings.themeMode(),
         )
     }
 
