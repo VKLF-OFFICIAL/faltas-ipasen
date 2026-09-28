@@ -15,6 +15,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ class MainActivity : ComponentActivity() {
 
 private enum class Tab(val label: String, val icon: ImageVector) {
     Summary("Resumen", Icons.Rounded.Home),
+    History("Historial", Icons.AutoMirrored.Rounded.List),
     Settings("Ajustes", Icons.Rounded.Settings),
 }
 
@@ -67,6 +69,7 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 private fun AppRoot(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Summary) }
+    var historyFilter by rememberSaveable { mutableStateOf<String?>(null) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     if (!state.hasCredentials) {
@@ -90,7 +93,7 @@ private fun AppRoot(viewModel: MainViewModel) {
                 Tab.entries.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
-                        onClick = { tab = item },
+                        onClick = { if (item == Tab.History) historyFilter = null; tab = item },
                         icon = { Icon(item.icon, contentDescription = null) },
                         label = { Text(item.label) },
                     )
@@ -100,7 +103,12 @@ private fun AppRoot(viewModel: MainViewModel) {
     ) { padding ->
         Crossfade(targetState = tab, animationSpec = tween(220), label = "tab", modifier = Modifier.padding(padding)) { current ->
             when (current) {
-                Tab.Summary -> SummaryScreen(state, onSync = viewModel::syncNow, onOpenSubject = { })
+                Tab.Summary -> SummaryScreen(
+                    state,
+                    onSync = viewModel::syncNow,
+                    onOpenSubject = { key -> historyFilter = key; tab = Tab.History },
+                )
+                Tab.History -> HistoryScreen(state.history, historyFilter, onFilterChange = { historyFilter = it })
                 Tab.Settings -> SettingsScreen(
                     state = state,
                     onBack = { tab = Tab.Summary },
@@ -110,6 +118,7 @@ private fun AppRoot(viewModel: MainViewModel) {
                     },
                     onLogout = {
                         viewModel.logout()
+                        historyFilter = null
                         tab = Tab.Summary
                     },
                 )
