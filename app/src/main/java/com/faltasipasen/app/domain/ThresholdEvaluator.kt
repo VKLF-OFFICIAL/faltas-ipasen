@@ -14,7 +14,7 @@ object ThresholdEvaluator {
             }
             stats.subjects
                 .filter { it.courseHours > 0.0 && it.percent >= thresholdPercent }
-                .forEach { add(ThresholdAlert(it.label, it.label, it.percent)) }
+                .forEach { add(ThresholdAlert(it.label, it.shortLabel, it.percent)) }
         }
         return ThresholdEvaluation(
             newAlerts = over.filter { it.key !in previouslyActive },

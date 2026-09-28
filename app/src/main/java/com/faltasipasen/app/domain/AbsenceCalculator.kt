@@ -33,6 +33,9 @@ object AbsenceCalculator {
                 courseHours = courseHours,
                 absentHours = own.sumOf { it.hours },
                 unjustifiedHours = own.filterNot { it.justified }.sumOf { it.hours },
+                abbreviation = slots.firstOrNull { it.abbreviation.isNotEmpty() }?.abbreviation.orEmpty(),
+                name = slots.firstOrNull { it.name.isNotEmpty() }?.name
+                    ?: own.firstOrNull { it.name.isNotEmpty() }?.name.orEmpty(),
             )
         }.sortedWith(compareByDescending<HoursStats> { it.percent }.thenBy { it.label })
 
@@ -42,6 +45,14 @@ object AbsenceCalculator {
             absentHours = subjects.sumOf { it.absentHours },
             unjustifiedHours = subjects.sumOf { it.unjustifiedHours },
         )
-        return AbsenceStats(global, subjects, courseStart, cutoff, countedUntil)
+        return AbsenceStats(
+            global = global,
+            subjects = subjects,
+            courseStart = courseStart,
+            cutoff = cutoff,
+            countedUntil = countedUntil,
+            lectivoDaysElapsed = courseDays.count { !it.isAfter(countedUntil) },
+            lectivoDaysTotal = courseDays.size,
+        )
     }
 }

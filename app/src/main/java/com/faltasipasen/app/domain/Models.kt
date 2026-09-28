@@ -39,9 +39,13 @@ data class HoursStats(
     val courseHours: Double,
     val absentHours: Double,
     val unjustifiedHours: Double,
+    val abbreviation: String = "",
+    val name: String = "",
 ) {
     val percent: Double get() = percentOf(absentHours)
     val unjustifiedPercent: Double get() = percentOf(unjustifiedHours)
+    val justifiedHours: Double get() = absentHours - unjustifiedHours
+    val shortLabel: String get() = abbreviation.ifEmpty { name.ifEmpty { label } }
 
     fun marginHours(thresholdPercent: Double): Double =
         (thresholdPercent / 100.0 * courseHours - absentHours).coerceAtLeast(0.0)
@@ -55,4 +59,6 @@ data class AbsenceStats(
     val courseStart: LocalDate,
     val cutoff: LocalDate,
     val countedUntil: LocalDate,
+    val lectivoDaysElapsed: Int = 0,
+    val lectivoDaysTotal: Int = 0,
 )

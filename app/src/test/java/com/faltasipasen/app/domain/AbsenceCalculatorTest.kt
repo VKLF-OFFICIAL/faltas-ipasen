@@ -108,4 +108,27 @@ class AbsenceCalculatorTest {
         assertEquals(5.0, HoursStats("X", 100.0, 10.0, 0.0).marginHours(15.0), 1e-9)
         assertEquals(0.0, HoursStats("X", 100.0, 20.0, 0.0).marginHours(15.0), 1e-9)
     }
+
+    @Test
+    fun `lectivo days are counted until today and until the cutoff`() {
+        val stats = calc()
+        assertEquals(3, stats.lectivoDaysElapsed) // 14/09, 15/09, 21/09
+        assertEquals(4, stats.lectivoDaysTotal)   // + 05/10
+    }
+
+    @Test
+    fun `subject stats carry abbreviation and readable name`() {
+        val named = listOf(ScheduleSlot("REDES", 1, 2.0, "RED", "Redes"))
+        val stats = AbsenceCalculator.calculate(named, calendar, absences, cutoff, today)
+        val redes = stats.subjects.single { it.label == "REDES" }
+        assertEquals("RED", redes.abbreviation)
+        assertEquals("Redes", redes.name)
+        assertEquals("RED", redes.shortLabel)
+        assertEquals("BD", stats.subjects.single { it.label == "BD" }.shortLabel)
+    }
+
+    @Test
+    fun `justified hours are absent minus unjustified`() {
+        assertEquals(1.0, calc().global.justifiedHours, 1e-9)
+    }
 }

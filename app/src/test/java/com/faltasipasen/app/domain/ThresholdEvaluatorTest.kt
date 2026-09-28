@@ -53,4 +53,11 @@ class ThresholdEvaluatorTest {
         val ghost = HoursStats("TUTORIA", 0.0, 3.0, 3.0)
         assertEquals(emptyList<ThresholdAlert>(), ThresholdEvaluator.evaluate(stats(0.0, ghost), 15.0, emptySet()).newAlerts)
     }
+
+    @Test
+    fun `subject alerts show the abbreviation but keep the full key`() {
+        val aso = HoursStats("ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 50.0, 10.0, 0.0, "ASO", "Administración de sistemas operativos")
+        val result = ThresholdEvaluator.evaluate(stats(0.0, aso), 15.0, emptySet())
+        assertEquals(listOf(ThresholdAlert("ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", "ASO", 20.0)), result.newAlerts)
+    }
 }
