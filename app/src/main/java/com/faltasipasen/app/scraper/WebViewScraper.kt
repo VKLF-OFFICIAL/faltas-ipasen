@@ -2,6 +2,7 @@ package com.faltasipasen.app.scraper
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.net.Uri
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
@@ -65,6 +66,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val host = request.url.host ?: return true
+                    if (request.url.scheme != "https") return true
                     return IpasenSite.ALLOWED_HOST_SUFFIXES.none { host == it || host.endsWith(".$it") }
                 }
 
@@ -90,6 +92,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             clearCookies()
             load(IpasenSite.LOGIN_URL)
             drainPageEvents()
+            verifyLoginPage()
             ScrapeParsers.checkOk(runStep(ScrapeStep.LOGIN, LOGIN_ASSET, credentialsJs(credentials)), "login")
             awaitPage(LOGIN_NAVIGATION_TIMEOUT_MS, required = false)
             ScrapeParsers.checkOk(runStep(ScrapeStep.LOGIN_CHECK, LOGIN_CHECK_ASSET), "login")
@@ -105,6 +108,21 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             webView.removeJavascriptInterface(BRIDGE_NAME)
             webView.destroy()
             CookieManager.getInstance().removeAllCookies(null)
+        }
+
+        /**
+         * Las credenciales solo se envían si la página cargada es de verdad la de acceso de
+         * Séneca. Evita inyectarlas en una redirección o una página distinta.
+         */
+        private fun verifyLoginPage() {
+            val current = webView.url?.let(Uri::parse)
+            val expectedHost = Uri.parse(IpasenSite.LOGIN_URL).host
+            if (current?.scheme != "https" || current.host != expectedHost) {
+                throw ScrapeException(
+                    Reason.PARSE_ERROR,
+                    "la página de acceso no es la de Séneca; no se envían las credenciales",
+                )
+            }
         }
 
         private suspend fun runDataStep(step: ScrapeStep): String {
