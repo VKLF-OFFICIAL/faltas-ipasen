@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Same calendar-with-% geometry as the foreground, single color, % cut out via evenOdd -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M34,32 L74,32 A4,4 0 0 1 78,36 L78,74 A4,4 0 0 1 74,78 L34,78 A4,4 0 0 1 30,74 L30,36 A4,4 0 0 1 34,32 Z
+                           M41,23 L43,23 A3,3 0 0 1 46,26 L46,29 A3,3 0 0 1 43,32 L41,32 A3,3 0 0 1 38,29 L38,26 A3,3 0 0 1 41,23 Z
+                           M65,23 L67,23 A3,3 0 0 1 70,26 L70,29 A3,3 0 0 1 67,32 L65,32 A3,3 0 0 1 62,29 L62,26 A3,3 0 0 1 65,23 Z
+                           M38.5,50 A5.5,5.5 0 1,0 49.5,50 A5.5,5.5 0 1,0 38.5,50 Z
+                           M58.5,72 A5.5,5.5 0 1,0 69.5,72 A5.5,5.5 0 1,0 58.5,72 Z
+                           M45.85,55.75 L49.55,52.39 L62.15,66.25 L58.45,69.61 Z" />
+</vector>

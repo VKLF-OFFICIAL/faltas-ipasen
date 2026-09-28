@@ -8,6 +8,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.faltasipasen.app.FaltasApp
+import com.faltasipasen.app.R
 import com.faltasipasen.app.notify.NotificationAlertSink
 import com.faltasipasen.app.scraper.ScrapeException.Reason
 import kotlinx.coroutines.CancellationException
@@ -36,7 +37,7 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
     // Solo se usa si Android ejecuta la tarea urgente como servicio en primer plano (Android < 12).
     override suspend fun getForegroundInfo(): ForegroundInfo {
         val notification = NotificationCompat.Builder(applicationContext, NotificationAlertSink.CHANNEL_SYNC)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setSmallIcon(R.drawable.ic_stat_faltas)
             .setContentTitle("Actualizando faltas desde iPasen…")
             .setOngoing(true)
             .build()

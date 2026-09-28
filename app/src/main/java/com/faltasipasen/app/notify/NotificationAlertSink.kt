@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.faltasipasen.app.R
 import com.faltasipasen.app.domain.AlertFormatter
 import com.faltasipasen.app.domain.ThresholdAlert
 import com.faltasipasen.app.sync.AlertSink
@@ -38,7 +39,7 @@ class NotificationAlertSink(private val context: Context) : AlertSink {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ALERTS)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(R.drawable.ic_stat_faltas)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
