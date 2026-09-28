@@ -1,2 +1,37 @@
-// Real implementation written in Task 11. Returns [{date, subject, hours, justified}] without "retrasos".
-run(async function () { throw new Error('faltas pendiente de configurar'); });
+// Faltas de asistencia > Consulta, filter "Todas": Fecha | Tramo horario | Ausencia de | Estado.
+// "Retraso" rows are late arrivals, not absences, so they are skipped.
+run(async function () {
+  await openSection('h1448725599', 'FALTAS DE ASISTENCIA DEL ALUMNO');
+  var table = await waitFor(function () {
+    return Array.prototype.find.call(document.querySelectorAll('table'), function (t) {
+      return t.rows[0] && /fecha/i.test(t.rows[0].innerText) && /estado/i.test(t.rows[0].innerText);
+    }) || (/registros:\s*0\b/i.test(document.body.innerText) ? 'vacia' : null);
+  }, 20000);
+  if (table === 'vacia') return [];
+
+  var filter = document.getElementById('C_TIPFAL');
+  if (filter && filter.value !== 'T') throw new Error('el filtro de faltas no está en "Todas"');
+
+  var header = Array.prototype.map.call(table.rows[0].cells, function (c) { return c.innerText.trim().toLowerCase(); });
+  var col = {
+    date: header.indexOf('fecha'),
+    tramo: header.indexOf('tramo horario'),
+    subject: header.indexOf('ausencia de'),
+    state: header.indexOf('estado'),
+  };
+  if (Object.keys(col).some(function (k) { return col[k] < 0; })) throw new Error('columnas de faltas desconocidas: ' + header.join(', '));
+
+  var absences = [];
+  Array.prototype.slice.call(table.rows, 1).forEach(function (row) {
+    if (row.cells.length < header.length) return;
+    var state = row.cells[col.state].innerText.trim().toLowerCase();
+    if (state.indexOf('retraso') >= 0) return;
+    absences.push({
+      date: toIsoDate(row.cells[col.date].innerText),
+      subject: row.cells[col.subject].innerText.trim(),
+      hours: tramoHours(row.cells[col.tramo].innerText),
+      justified: state.indexOf('justificada') === 0,
+    });
+  });
+  return absences;
+});

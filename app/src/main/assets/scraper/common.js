@@ -41,11 +41,33 @@ function setNativeValue(input, value) {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-// Same-origin request with the logged-in session cookies.
-async function fetchJson(url, options) {
-  var response = await fetch(url, Object.assign({ credentials: 'include' }, options || {}));
-  if (!response.ok) throw new Error('HTTP ' + response.status + ' en ' + url);
-  return response.json();
+function onPage(title) {
+  return Array.prototype.some.call(document.querySelectorAll('h1,h2,h3,h4'), function (h) {
+    return h.innerText.toUpperCase().indexOf(title) >= 0;
+  });
+}
+
+// Séneca uses one-time URLs, so sections are opened through their menu entry. That reloads the
+// page and the engine injects this step again; the second run finds the section already open.
+// The sessionStorage mark stops a re-injection on an intermediate page from clicking twice.
+async function openSection(menuId, title) {
+  if (onPage(title)) return;
+  var key = '__faltas_menu_' + menuId;
+  if (Date.now() - Number(sessionStorage.getItem(key) || 0) > 20000) {
+    var item = await waitFor(function () { return document.getElementById(menuId); }, 20000);
+    sessionStorage.setItem(key, String(Date.now()));
+    Navegacion.llamadaMenu(item);
+  }
+  await waitFor(function () { return onPage(title); }, 30000);
+}
+
+// "8:15 - 9:15" -> 1, "11:15 - 11:45" -> 0.5
+function tramoHours(text) {
+  var m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(String(text));
+  if (!m) throw new Error('tramo horario no reconocido: ' + text);
+  var minutes = (Number(m[3]) * 60 + Number(m[4])) - (Number(m[1]) * 60 + Number(m[2]));
+  if (minutes <= 0) throw new Error('tramo horario no válido: ' + text);
+  return Math.round(minutes / 60 * 100) / 100;
 }
 
 // "5/9/2026" or "05-09-2026" -> "2026-09-05"
