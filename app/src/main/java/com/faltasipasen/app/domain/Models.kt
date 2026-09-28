@@ -3,9 +3,18 @@ package com.faltasipasen.app.domain
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
-/** Una sesión semanal del horario. dayOfWeek: 1 = lunes … 7 = domingo. */
+/**
+ * Una sesión semanal del horario. dayOfWeek: 1 = lunes … 7 = domingo.
+ * [subject] es la clave normalizada para cruzar horario y faltas; [name] y [abbreviation] son para mostrar.
+ */
 @Serializable
-data class ScheduleSlot(val subject: String, val dayOfWeek: Int, val hours: Double)
+data class ScheduleSlot(
+    val subject: String,
+    val dayOfWeek: Int,
+    val hours: Double,
+    val abbreviation: String = "",
+    val name: String = "",
+)
 
 @Serializable
 data class CalendarDay(
@@ -19,6 +28,8 @@ data class Absence(
     val subject: String,
     val hours: Double,
     val justified: Boolean,
+    val tramo: String = "",
+    val name: String = "",
 )
 
 data class Credentials(val username: String, val password: String)

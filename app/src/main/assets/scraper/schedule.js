@@ -29,7 +29,7 @@ run(async function () {
     Array.prototype.slice.call(row.cells, 1).forEach(function (cell, i) {
       var day = columnDay[i + 1];
       var abbr = cell.innerText.trim().split('\n')[0].trim();
-      if (day > 0 && names[abbr]) slots.push({ subject: names[abbr], day: day, hours: hours });
+      if (day > 0 && names[abbr]) slots.push({ subject: names[abbr], abbr: abbr, day: day, hours: hours });
     });
   });
   if (!slots.length) throw new Error('horario vacío o con un formato desconocido');

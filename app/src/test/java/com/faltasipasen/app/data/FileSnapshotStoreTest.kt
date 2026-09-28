@@ -60,4 +60,17 @@ class FileSnapshotStoreTest {
         assertNull(store.current.value)
         assertFalse(file().exists())
     }
+
+    @Test
+    fun `snapshot saved before the new fields existed still loads`() {
+        file().writeText(
+            """{"schedule":[{"subject":"REDES","dayOfWeek":1,"hours":1.0}],""" +
+                """"calendar":[{"date":"2026-09-14","lectivo":true}],""" +
+                """"absences":[{"date":"2026-09-14","subject":"REDES","hours":1.0,"justified":false}],""" +
+                """"syncedAtMillis":1}""",
+        )
+        val loaded = FileSnapshotStore(file()).current.value!!
+        assertEquals(ScheduleSlot("REDES", 1, 1.0), loaded.schedule.single())
+        assertEquals(Absence(LocalDate.of(2026, 9, 14), "REDES", 1.0, false), loaded.absences.single())
+    }
 }

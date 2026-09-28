@@ -17,7 +17,19 @@ class ScrapeParsersTest {
     fun `parses schedule and normalizes subject names`() {
         val raw = """{"ok":true,"data":[{"subject":"  Redes   locales ","day":1,"hours":1.5},{"subject":"BD","day":3}]}"""
         assertEquals(
-            listOf(ScheduleSlot("REDES LOCALES", 1, 1.5), ScheduleSlot("BD", 3, 1.0)),
+            listOf(
+                ScheduleSlot("REDES LOCALES", 1, 1.5, name = "Redes locales"),
+                ScheduleSlot("BD", 3, 1.0, name = "BD"),
+            ),
+            ScrapeParsers.parseSchedule(raw),
+        )
+    }
+
+    @Test
+    fun `parses schedule abbreviations`() {
+        val raw = """{"ok":true,"data":[{"subject":"Administración de sistemas operativos","abbr":" ASO ","day":2,"hours":1}]}"""
+        assertEquals(
+            listOf(ScheduleSlot("ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 2, 1.0, "ASO", "Administración de sistemas operativos")),
             ScrapeParsers.parseSchedule(raw),
         )
     }
@@ -51,11 +63,11 @@ class ScrapeParsersTest {
 
     @Test
     fun `parses absences with defaults`() {
-        val raw = """{"ok":true,"data":[{"date":"2026-10-02","subject":"bd"},{"date":"2026-10-03","subject":"Redes","hours":2,"justified":true}]}"""
+        val raw = """{"ok":true,"data":[{"date":"2026-10-02","subject":"bd"},{"date":"2026-10-03","subject":"Redes","hours":2,"justified":true,"tramo":" 8:15 - 9:15 "}]}"""
         assertEquals(
             listOf(
-                Absence(LocalDate.of(2026, 10, 2), "BD", 1.0, false),
-                Absence(LocalDate.of(2026, 10, 3), "REDES", 2.0, true),
+                Absence(LocalDate.of(2026, 10, 2), "BD", 1.0, false, name = "bd"),
+                Absence(LocalDate.of(2026, 10, 3), "REDES", 2.0, true, tramo = "8:15 - 9:15", name = "Redes"),
             ),
             ScrapeParsers.parseAbsences(raw),
         )

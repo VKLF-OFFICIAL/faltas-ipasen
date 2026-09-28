@@ -21,9 +21,11 @@ run(async function () {
   };
   if (Object.keys(col).some(function (k) { return col[k] < 0; })) throw new Error('columnas de faltas desconocidas: ' + header.join(', '));
 
+  var rowsRead = 0;
   var absences = [];
   Array.prototype.slice.call(table.rows, 1).forEach(function (row) {
     if (row.cells.length < header.length) return;
+    rowsRead++;
     var state = row.cells[col.state].innerText.trim().toLowerCase();
     if (state.indexOf('retraso') >= 0) return;
     absences.push({
@@ -31,7 +33,12 @@ run(async function () {
       subject: row.cells[col.subject].innerText.trim(),
       hours: tramoHours(row.cells[col.tramo].innerText),
       justified: state.indexOf('justificada') === 0,
+      tramo: row.cells[col.tramo].innerText.trim(),
     });
   });
+  var total = /registros:\s*(\d+)/i.exec(document.body.innerText);
+  if (total && Number(total[1]) !== rowsRead) {
+    throw new Error('la tabla de faltas muestra ' + rowsRead + ' de ' + total[1] + ' registros (¿está paginada?)');
+  }
   return absences;
 });

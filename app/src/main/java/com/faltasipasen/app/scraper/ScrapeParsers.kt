@@ -18,7 +18,7 @@ import java.time.format.DateTimeParseException
 import java.util.Locale
 
 @Serializable
-private data class SlotDto(val subject: String, val day: Int, val hours: Double = 1.0)
+private data class SlotDto(val subject: String, val day: Int, val hours: Double = 1.0, val abbr: String = "")
 
 @Serializable
 private data class DayDto(val date: String, val lectivo: Boolean)
@@ -29,6 +29,7 @@ private data class AbsenceDto(
     val subject: String,
     val hours: Double = 1.0,
     val justified: Boolean = false,
+    val tramo: String = "",
 )
 
 object ScrapeParsers {
@@ -42,7 +43,7 @@ object ScrapeParsers {
     fun parseSchedule(raw: String): List<ScheduleSlot> =
         decode<List<SlotDto>>(raw, STEP_SCHEDULE).map { dto ->
             if (dto.day !in 1..7) invalid(STEP_SCHEDULE, "día de la semana fuera de rango: ${dto.day}")
-            ScheduleSlot(subject(dto.subject, STEP_SCHEDULE), dto.day, hours(dto.hours, STEP_SCHEDULE))
+            ScheduleSlot(subject(dto.subject, STEP_SCHEDULE), dto.day, hours(dto.hours, STEP_SCHEDULE), dto.abbr.trim(), displayName(dto.subject))
         }
 
     fun parseCalendar(raw: String): List<CalendarDay> =
@@ -55,10 +56,14 @@ object ScrapeParsers {
                 subject = subject(it.subject, STEP_ABSENCES),
                 hours = hours(it.hours, STEP_ABSENCES),
                 justified = it.justified,
+                tramo = it.tramo.trim(),
+                name = displayName(it.subject),
             )
         }
 
-    fun normalizeSubject(name: String): String = name.trim().replace(whitespace, " ").uppercase(Locale.ROOT)
+    fun displayName(name: String): String = name.trim().replace(whitespace, " ")
+
+    fun normalizeSubject(name: String): String = displayName(name).uppercase(Locale.ROOT)
 
     private inline fun <reified T> decode(raw: String, step: String): T {
         val data = payload(raw, step)
