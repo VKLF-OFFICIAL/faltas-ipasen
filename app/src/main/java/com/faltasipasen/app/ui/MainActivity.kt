@@ -73,7 +73,7 @@ private fun AppRoot(viewModel: MainViewModel) {
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     if (!state.hasCredentials) {
-        SetupScreen(
+        WelcomeScreen(
             initialThreshold = state.thresholdPercent,
             initialCutoff = state.cutoffDate,
             onSubmit = { username, password, threshold, cutoff ->
