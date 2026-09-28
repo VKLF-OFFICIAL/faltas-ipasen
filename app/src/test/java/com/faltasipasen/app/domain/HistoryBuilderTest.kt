@@ -64,4 +64,19 @@ class HistoryBuilderTest {
             HistoryBuilder.filterOptions(days),
         )
     }
+
+    @Test
+    fun `two absences of the same subject on the same day with no tramo are both kept`() {
+        val duplicateDay = LocalDate.of(2026, 9, 24)
+        val duplicateSchedule = listOf(
+            ScheduleSlot("SERVICIOS DE RED E INTERNET", duplicateDay.dayOfWeek.value, 1.0, "SRI", "Servicios de red e Internet"),
+        )
+        val duplicateAbsences = listOf(
+            Absence(duplicateDay, "SERVICIOS DE RED E INTERNET", 1.0, false, "", ""),
+            Absence(duplicateDay, "SERVICIOS DE RED E INTERNET", 1.0, false, "", ""),
+        )
+        val result = HistoryBuilder.build(duplicateSchedule, duplicateAbsences, cutoff, today)
+        assertEquals(1, result.size)
+        assertEquals(2, result.single().entries.size)
+    }
 }
