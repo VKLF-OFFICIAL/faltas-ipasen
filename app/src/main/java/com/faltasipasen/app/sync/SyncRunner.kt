@@ -14,6 +14,7 @@ import com.faltasipasen.app.scraper.ScrapeResult
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 interface AlertSink {
     fun showThresholdAlerts(thresholdPercent: Double, alerts: List<ThresholdAlert>)
@@ -35,6 +36,7 @@ class SyncRunner(
     private val nowMillis: () -> Long,
 ) {
     private val mutex = Mutex()
+    private val cutoffDateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
     suspend fun run(): SyncOutcome = mutex.withLock {
         val credentials = settings.credentials() ?: return@withLock SyncOutcome.MissingCredentials
@@ -51,6 +53,12 @@ class SyncRunner(
         val stats = AbsenceCalculator.calculate(
             snapshot.schedule, snapshot.calendar, snapshot.absences, settings.cutoffDate(), today(),
         )
+        if (stats.lectivoDaysTotal == 0) {
+            val message = "La fecha de fin de clases (${stats.cutoff.format(cutoffDateFormat)}) " +
+                "no cae en el curso que muestra iPasen. Revísala en Ajustes."
+            settings.setLastError(message)
+            return@withLock SyncOutcome.Failed(Reason.PARSE_ERROR, message)
+        }
         val threshold = settings.thresholdPercent()
         val evaluation = ThresholdEvaluator.evaluate(stats, threshold, settings.activeAlertKeys())
         if (evaluation.newAlerts.isNotEmpty()) alerts.showThresholdAlerts(threshold, evaluation.newAlerts)

@@ -147,4 +147,16 @@ class SyncRunnerTest {
         runner.run()
         assertNull(settings.lastError())
     }
+
+    @Test
+    fun `a cutoff outside the course iPasen shows fails without evaluating thresholds but keeps the snapshot`() = runTest {
+        loggedIn()
+        settings.setCutoffDate(LocalDate.of(2026, 2, 15))
+        val outcome = runner.run() as SyncOutcome.Failed
+        assertEquals(ScrapeException.Reason.PARSE_ERROR, outcome.reason)
+        assertTrue(outcome.message.contains("Revísala en Ajustes"))
+        assertTrue(alerts.thresholdCalls.isEmpty())
+        assertEquals(Snapshot(result.schedule, result.calendar, result.absences, 1234L), snapshots.state.value)
+        assertEquals(outcome.message, settings.lastError())
+    }
 }
