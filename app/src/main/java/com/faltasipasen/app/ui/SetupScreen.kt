@@ -18,6 +18,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ fun SetupScreen(
     onSubmit: (username: String, password: String, thresholdPercent: Double, cutoff: LocalDate) -> Unit,
 ) {
     var username by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var thresholdText by rememberSaveable { mutableStateOf(formatNumber(initialThreshold)) }
     var cutoff by rememberSaveable { mutableStateOf(initialCutoff) }
     val threshold = InputValidation.parseThreshold(thresholdText)

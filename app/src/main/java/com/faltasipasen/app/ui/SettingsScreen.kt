@@ -50,7 +50,7 @@ fun SettingsScreen(
     var cutoff by rememberSaveable { mutableStateOf(state.cutoffDate) }
     var interval by rememberSaveable { mutableIntStateOf(state.syncIntervalHours) }
     var username by rememberSaveable { mutableStateOf(state.username) }
-    var newPassword by rememberSaveable { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
     var confirmLogout by remember { mutableStateOf(false) }
     val threshold = InputValidation.parseThreshold(thresholdText)
 
