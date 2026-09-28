@@ -39,8 +39,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +52,7 @@ import com.faltasipasen.app.domain.HoursStats
 import com.faltasipasen.app.domain.RiskLevel
 import com.faltasipasen.app.ui.theme.LocalRiskColors
 import com.faltasipasen.app.ui.theme.Tabular
+import java.time.LocalDate
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +69,8 @@ fun SummaryScreen(state: UiState, onSync: () -> Unit, onOpenSubject: (String) ->
             val stats = state.stats
             if (stats == null) {
                 item { EmptySummary(state.syncing, onSync) }
+            } else if (stats.lectivoDaysTotal == 0) {
+                item { CutoffMismatchCard(stats.cutoff) }
             } else {
                 item { MainPercentCard(stats.global, state.thresholdPercent) }
                 item { BreakdownRow(stats.global) }
@@ -91,19 +94,28 @@ private fun SummaryHeader(state: UiState, onSync: () -> Unit) {
     }
     val subtitle = state.lastSyncMillis?.let { "Actualizado ${relativeTime(it, now)}" } ?: "Sin sincronizar todavía"
     ScreenHeader(title = "Resumen", subtitle = subtitle) {
+        IconButton(onClick = onSync, enabled = !state.syncing) {
+            SyncIcon(state.syncing)
+        }
+    }
+}
+
+@Composable
+private fun SyncIcon(syncing: Boolean) {
+    if (syncing) {
         val rotation by rememberInfiniteTransition(label = "sync").animateFloat(
             initialValue = 0f,
             targetValue = 360f,
             animationSpec = infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart),
             label = "rotation",
         )
-        IconButton(onClick = onSync, enabled = !state.syncing) {
-            Icon(
-                Icons.Rounded.Refresh,
-                contentDescription = "Sincronizar ahora",
-                modifier = if (state.syncing) Modifier.rotate(rotation) else Modifier,
-            )
-        }
+        Icon(
+            Icons.Rounded.Refresh,
+            contentDescription = "Sincronizar ahora",
+            modifier = Modifier.graphicsLayer { rotationZ = rotation },
+        )
+    } else {
+        Icon(Icons.Rounded.Refresh, contentDescription = "Sincronizar ahora")
     }
 }
 
@@ -179,6 +191,21 @@ private fun CourseProgressCard(stats: AbsenceStats) {
                 style = MaterialTheme.typography.bodyMedium.merge(Tabular),
             )
             ThinProgress(fraction.toFloat(), MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+private fun CutoffMismatchCard(cutoff: LocalDate) {
+    FlatCard {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Revisa la fecha de fin de clases", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "La fecha elegida (${formatLongDate(cutoff)}) no coincide con el curso del calendario de iPasen. " +
+                    "Cámbiala en Ajustes.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
