@@ -111,11 +111,8 @@ private fun AppRoot(viewModel: MainViewModel) {
                 Tab.History -> HistoryScreen(state.history, historyFilter, onFilterChange = { historyFilter = it })
                 Tab.Settings -> SettingsScreen(
                     state = state,
-                    onBack = { tab = Tab.Summary },
-                    onSave = { threshold, cutoff, interval, username, newPassword ->
-                        viewModel.saveSettings(threshold, cutoff, interval, username, newPassword)
-                        tab = Tab.Summary
-                    },
+                    onThemeChange = viewModel::setThemeMode,
+                    onSave = viewModel::saveSettings,
                     onLogout = {
                         viewModel.logout()
                         historyFilter = null
