@@ -107,6 +107,42 @@ class SyncRunnerEdgeCasesTest {
     }
 
     @Test
+    fun `rejected credentials are not retried until new ones are saved`() = runTest {
+        loggedIn()
+        var calls = 0
+        scraper.outcome = { calls++; throw ScrapeException(ScrapeException.Reason.LOGIN_FAILED, "login: Usuario bloqueado") }
+        val first = runner.run() as SyncOutcome.Failed
+        val second = runner.run() as SyncOutcome.Failed
+        assertEquals(1, calls)
+        assertEquals(ScrapeException.Reason.LOGIN_FAILED, second.reason)
+        assertEquals(first.message, second.message)
+        assertTrue(first.message.contains("Usuario bloqueado"))
+
+        settings.saveCredentials(Credentials("alumno", "nueva"))
+        scraper.outcome = { result }
+        assertTrue(runner.run() is SyncOutcome.Success)
+    }
+
+    @Test
+    fun `data downloaded after logging out is discarded`() = runTest {
+        loggedIn()
+        scraper.outcome = { settings.clearAll(); result }
+        assertSame(SyncOutcome.Superseded, runner.run())
+        assertNull(snapshots.state.value)
+    }
+
+    @Test
+    fun `an unexpected exception becomes a retryable internal error with a readable message`() = runTest {
+        loggedIn()
+        scraper.outcome = { throw IllegalStateException() }
+        val outcome = runner.run() as SyncOutcome.Failed
+        assertEquals(ScrapeException.Reason.INTERNAL, outcome.reason)
+        assertTrue(outcome.message.contains("IllegalStateException"))
+        assertFalse(outcome.message.contains("null"))
+        assertTrue(alerts.problems.isEmpty())
+    }
+
+    @Test
     fun `snapshot is not overwritten on scrape failure`() = runTest {
         loggedIn()
         runner.run() // save initial snapshot

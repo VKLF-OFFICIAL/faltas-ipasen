@@ -34,7 +34,9 @@ object SyncScheduler {
             .setConstraints(constraints)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
-        WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK, ExistingWorkPolicy.KEEP, request)
+        // REPLACE: con KEEP, pulsar "Sincronizar" no hacía nada mientras un intento anterior esperaba
+        // su reintento, y tras cambiar las credenciales seguía la descarga con las antiguas.
+        WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK, ExistingWorkPolicy.REPLACE, request)
     }
 
     fun cancelAll(context: Context) {

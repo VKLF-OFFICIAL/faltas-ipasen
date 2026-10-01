@@ -92,7 +92,12 @@ private fun SummaryHeader(state: UiState, onSync: () -> Unit) {
             value = System.currentTimeMillis()
         }
     }
-    val subtitle = state.lastSyncMillis?.let { "Actualizado ${relativeTime(it, now)}" } ?: "Sin sincronizar todavía"
+    val subtitle = when {
+        // Sin esto, pulsar "Sincronizar" sin conexión no daba ninguna señal.
+        state.pendingSync -> "Sincronización pendiente: esperando conexión…"
+        state.lastSyncMillis != null -> "Actualizado ${relativeTime(state.lastSyncMillis, now)}"
+        else -> "Sin sincronizar todavía"
+    }
     ScreenHeader(title = "Resumen", subtitle = subtitle) {
         IconButton(onClick = onSync, enabled = !state.syncing) {
             SyncIcon(state.syncing)

@@ -3,15 +3,18 @@ package com.faltasipasen.app.scraper
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.faltasipasen.app.domain.Credentials
 import com.faltasipasen.app.scraper.ScrapeException.Reason
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
@@ -29,17 +32,22 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             throw ScrapeException(Reason.PARSE_ERROR, "scraper de iPasen sin configurar")
         }
         return withContext(Dispatchers.Main) {
-            val session = Session(context.applicationContext)
+            // Falla si el WebView del sistema no está disponible (p. ej. mientras se actualiza).
+            val session = try {
+                Session(context.applicationContext)
+            } catch (e: Exception) {
+                throw ScrapeException(Reason.INTERNAL, "no se pudo abrir el navegador interno (${describe(e)})")
+            }
             try {
                 withTimeout(TOTAL_TIMEOUT_MS) { session.run(credentials) }
             } catch (e: TimeoutCancellationException) {
                 throw ScrapeException(Reason.TIMEOUT, "la sincronización completa superó el tiempo máximo")
             } catch (e: ScrapeException) {
                 throw e
-            } catch (e: kotlinx.coroutines.CancellationException) {
+            } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                throw ScrapeException(Reason.PARSE_ERROR, "Fallo interno en el scraper: ${e.message}")
+                throw ScrapeException(Reason.INTERNAL, "fallo en el navegador interno (${describe(e)})")
             } finally {
                 session.destroy()
             }
@@ -48,7 +56,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
 
     private sealed interface PageEvent {
         data class Finished(val url: String) : PageEvent
-        data class Failed(val description: String) : PageEvent
+        data class Failed(val description: String, val reason: Reason = Reason.NETWORK) : PageEvent
     }
 
     private class Bridge(private val results: Channel<Pair<String, String>>) {
@@ -71,9 +79,16 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             addJavascriptInterface(Bridge(results), BRIDGE_NAME)
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    val host = request.url.host ?: return true
-                    if (request.url.scheme != "https") return true
-                    return IpasenSite.ALLOWED_HOST_SUFFIXES.none { host == it || host.endsWith(".$it") }
+                    val host = request.url.host
+                    val allowed = host != null && request.url.scheme == "https" &&
+                        IpasenSite.ALLOWED_HOST_SUFFIXES.any { host == it || host.endsWith(".$it") }
+                    // Sin este aviso, una redirección bloqueada solo se notaría como un timeout genérico.
+                    if (!allowed && request.isForMainFrame) {
+                        pageEvents.trySend(
+                            PageEvent.Failed("Séneca intentó abrir una web no permitida (${host ?: request.url.scheme})", Reason.PARSE_ERROR),
+                        )
+                    }
+                    return !allowed
                 }
 
                 override fun onPageFinished(view: WebView, url: String) {
@@ -82,6 +97,13 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                     if (request.isForMainFrame) pageEvents.trySend(PageEvent.Failed(error.description.toString()))
+                }
+
+                // Séneca caído o en mantenimiento: la página "carga" pero es un error del servidor.
+                override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
+                    if (request.isForMainFrame && response.statusCode >= 500) {
+                        pageEvents.trySend(PageEvent.Failed("Séneca respondió con un error ${response.statusCode}"))
+                    }
                 }
             }
             // Sin ventana: tamaño de móvil para que la web maquete y ejecute con normalidad.
@@ -144,7 +166,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
 
         private suspend fun awaitPage(timeoutMs: Long, required: Boolean) {
             when (val event = withTimeoutOrNull(timeoutMs) { pageEvents.receive() }) {
-                is PageEvent.Failed -> throw ScrapeException(Reason.NETWORK, event.description)
+                is PageEvent.Failed -> throw ScrapeException(event.reason, event.description)
                 is PageEvent.Finished -> Unit
                 null -> if (required) throw ScrapeException(Reason.TIMEOUT, "la página de iPasen no terminó de cargar")
             }
@@ -155,15 +177,16 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             val script = buildScript(step, asset, prelude)
             webView.evaluateJavascript(script, null)
             var reinjections = 0
-            val deadline = System.currentTimeMillis() + STEP_TIMEOUT_MS
+            // Reloj monotónico: un cambio de hora del móvil no debe adelantar ni alargar el plazo.
+            val deadline = SystemClock.elapsedRealtime() + STEP_TIMEOUT_MS
             while (true) {
-                val remaining = deadline - System.currentTimeMillis()
+                val remaining = deadline - SystemClock.elapsedRealtime()
                 if (remaining <= 0) throw ScrapeException(Reason.TIMEOUT, "el paso '$step' no respondió")
                 val result = withTimeoutOrNull(minOf(remaining, POLL_MS)) { results.receive() }
                 if (result != null && result.first == step) return result.second
 
                 when (val event = pageEvents.tryReceive().getOrNull()) {
-                    is PageEvent.Failed -> throw ScrapeException(Reason.NETWORK, event.description)
+                    is PageEvent.Failed -> throw ScrapeException(event.reason, event.description)
                     is PageEvent.Finished -> if (step != ScrapeStep.LOGIN && reinjections < MAX_REINJECTIONS) {
                         reinjections++
                         webView.evaluateJavascript(script, null)
@@ -198,6 +221,8 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
     }
 
     private companion object {
+        fun describe(e: Exception): String = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+
         const val BRIDGE_NAME = "AndroidBridge"
         const val COMMON_ASSET = "scraper/common.js"
         const val LOGIN_ASSET = "scraper/login.js"

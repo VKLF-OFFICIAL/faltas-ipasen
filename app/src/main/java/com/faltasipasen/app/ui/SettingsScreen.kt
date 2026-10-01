@@ -53,6 +53,7 @@ private val themeLabels = mapOf(
 fun SettingsScreen(
     state: UiState,
     onThemeChange: (ThemeMode) -> Unit,
+    suggestedCutoff: (EducationLevel) -> LocalDate,
     onSave: (thresholdPercent: Double, cutoff: LocalDate, intervalHours: Int, username: String, newPassword: String, level: EducationLevel) -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -99,11 +100,18 @@ fun SettingsScreen(
         // ── Etapa educativa ───────────────────────────────────────────────
         SettingsSection("Etapa educativa") {
             Text(
-                "Cambiando la etapa se actualizarán las sugerencias de umbral y fecha fin.",
+                "Al cambiar la etapa, el umbral y la fecha de fin pasan a los de la nueva etapa " +
+                    "(salvo si ya los habías cambiado tú).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            EducationLevelPicker(selected = level, onSelect = { level = it })
+            EducationLevelPicker(selected = level, onSelect = { new ->
+                val (nextThreshold, nextCutoff) =
+                    InputValidation.followLevelDefaults(level, new, thresholdText, cutoff, suggestedCutoff)
+                thresholdText = nextThreshold
+                cutoff = nextCutoff
+                level = new
+            })
         }
 
         // ── Avisos ────────────────────────────────────────────────────────

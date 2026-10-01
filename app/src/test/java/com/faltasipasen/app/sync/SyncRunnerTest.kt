@@ -157,6 +157,7 @@ class SyncRunnerTest {
         assertTrue(outcome.message.contains("Revísala en Ajustes"))
         assertTrue(alerts.thresholdCalls.isEmpty())
         assertEquals(Snapshot(result.schedule, result.calendar, result.absences, 1234L), snapshots.state.value)
-        assertEquals(outcome.message, settings.lastError())
+        // El resumen lo avisa en vivo; un error guardado quedaría obsoleto al corregir la fecha.
+        assertNull(settings.lastError())
     }
 }

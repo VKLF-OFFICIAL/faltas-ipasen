@@ -11,7 +11,6 @@ import com.faltasipasen.app.FaltasApp
 import com.faltasipasen.app.R
 import com.faltasipasen.app.notify.NotificationAlertSink
 import com.faltasipasen.app.scraper.ScrapeException.Reason
-import kotlinx.coroutines.CancellationException
 
 class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
@@ -19,9 +18,10 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
         val graph = (applicationContext as FaltasApp).graph
         val outcome = graph.syncRunner.run()
         return when (outcome) {
-            is SyncOutcome.Success, SyncOutcome.MissingCredentials -> Result.success()
+            is SyncOutcome.Success, SyncOutcome.MissingCredentials, SyncOutcome.Superseded -> Result.success()
             is SyncOutcome.Failed -> when (outcome.reason) {
-                Reason.NETWORK, Reason.TIMEOUT -> if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+                Reason.NETWORK, Reason.TIMEOUT, Reason.INTERNAL ->
+                    if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
                 Reason.LOGIN_FAILED, Reason.PARSE_ERROR -> Result.failure()
             }
         }

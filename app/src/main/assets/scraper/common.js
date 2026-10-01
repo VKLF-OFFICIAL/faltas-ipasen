@@ -11,6 +11,7 @@ function run(fn) {
     .catch(function (e) {
       var payload = { ok: false, error: String(e && e.message ? e.message : e) };
       if (e && e.loginFailed) payload.loginFailed = true;
+      if (e && e.timeout) payload.timeout = true;
       report(payload);
     });
 }
@@ -20,6 +21,7 @@ function sleep(ms) {
 }
 
 // Polls predicate() until it returns a truthy value (returned) or the timeout expires.
+// A timeout is flagged so the app treats it as a slow Séneca (retry), not as a changed page.
 function waitFor(predicate, timeoutMs) {
   var started = Date.now();
   return new Promise(function (resolve, reject) {
@@ -27,7 +29,11 @@ function waitFor(predicate, timeoutMs) {
       var value = null;
       try { value = predicate(); } catch (ignored) {}
       if (value) return resolve(value);
-      if (Date.now() - started > timeoutMs) return reject(new Error('tiempo de espera agotado en ' + STEP));
+      if (Date.now() - started > timeoutMs) {
+        var e = new Error('tiempo de espera agotado en ' + STEP);
+        e.timeout = true;
+        return reject(e);
+      }
       setTimeout(poll, 250);
     })();
   });

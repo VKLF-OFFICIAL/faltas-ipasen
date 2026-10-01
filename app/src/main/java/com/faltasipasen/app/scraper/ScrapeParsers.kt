@@ -84,11 +84,17 @@ object ScrapeParsers {
         val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull ?: false
         if (!ok) {
             val error = (obj["error"] as? JsonPrimitive)?.contentOrNull ?: "error desconocido"
-            val loginFailed = (obj["loginFailed"] as? JsonPrimitive)?.booleanOrNull == true
-            throw ScrapeException(if (loginFailed) Reason.LOGIN_FAILED else Reason.PARSE_ERROR, "$step: $error")
+            val reason = when {
+                flag(obj, "loginFailed") -> Reason.LOGIN_FAILED
+                flag(obj, "timeout") -> Reason.TIMEOUT
+                else -> Reason.PARSE_ERROR
+            }
+            throw ScrapeException(reason, "$step: $error")
         }
         return obj["data"] ?: JsonNull
     }
+
+    private fun flag(obj: JsonObject, name: String): Boolean = (obj[name] as? JsonPrimitive)?.booleanOrNull == true
 
     private fun subject(value: String, step: String): String =
         normalizeSubject(value).ifEmpty { invalid(step, "asignatura vacía") }

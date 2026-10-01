@@ -88,6 +88,12 @@ class ScrapeParsersTest {
     }
 
     @Test
+    fun `a page that never appears is a timeout, not a changed website`() {
+        val raw = """{"ok":false,"error":"tiempo de espera agotado en schedule","timeout":true}"""
+        assertEquals(ScrapeException.Reason.TIMEOUT, reasonOf { ScrapeParsers.parseSchedule(raw) })
+    }
+
+    @Test
     fun `successful step passes the ok check`() {
         ScrapeParsers.checkOk("""{"ok":true,"data":"ok"}""", "login")
     }

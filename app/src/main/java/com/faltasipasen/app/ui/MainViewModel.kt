@@ -10,18 +10,20 @@ import com.faltasipasen.app.data.Snapshot
 import com.faltasipasen.app.data.ThemeMode
 import com.faltasipasen.app.domain.AbsenceCalculator
 import com.faltasipasen.app.domain.AbsenceStats
+import com.faltasipasen.app.domain.CourseDates
 import com.faltasipasen.app.domain.Credentials
+import com.faltasipasen.app.domain.EducationLevel
 import com.faltasipasen.app.domain.HistoryBuilder
 import com.faltasipasen.app.domain.HistoryDay
 import com.faltasipasen.app.sync.SyncScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
-
-import com.faltasipasen.app.domain.EducationLevel
 
 data class UiState(
     val hasCredentials: Boolean,
@@ -34,6 +36,7 @@ data class UiState(
     val lastSyncMillis: Long?,
     val lastError: String?,
     val syncing: Boolean,
+    val pendingSync: Boolean,
     val themeMode: ThemeMode,
     val educationLevel: EducationLevel,
 )
@@ -42,17 +45,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val graph = (application as FaltasApp).graph
     private val workManager = WorkManager.getInstance(application)
 
-    private val syncing: Flow<Boolean> = combine(
+    private data class WorkStatus(val running: Boolean, val pending: Boolean)
+
+    private val workStatus: Flow<WorkStatus> = combine(
         workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.NOW_WORK),
         workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.PERIODIC_WORK),
-    ) { now, periodic -> (now + periodic).any { it.state == WorkInfo.State.RUNNING } }
+    ) { now, periodic ->
+        WorkStatus(
+            running = (now + periodic).any { it.state == WorkInfo.State.RUNNING },
+            // Sincronización pedida a mano que espera conexión o su reintento.
+            pending = now.any { it.state == WorkInfo.State.ENQUEUED },
+        )
+    }
 
+    // El cálculo (y descifrar las credenciales con el Keystore) va fuera del hilo principal.
     val state: StateFlow<UiState> =
-        combine(graph.snapshots.current, graph.settings.changes, syncing) { snapshot, _, running ->
-            buildState(snapshot, running)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), buildState(graph.snapshots.current.value, false))
+        combine(graph.snapshots.current, graph.settings.changes, workStatus) { snapshot, _, work ->
+            buildState(snapshot, work)
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), buildState(graph.snapshots.current.value, IDLE))
 
-    private fun buildState(snapshot: Snapshot?, running: Boolean): UiState {
+    private fun buildState(snapshot: Snapshot?, work: WorkStatus): UiState {
         val settings = graph.settings
         val credentials = settings.credentials()
         val stats = snapshot?.let {
@@ -71,11 +85,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             syncIntervalHours = settings.syncIntervalHours(),
             lastSyncMillis = snapshot?.syncedAtMillis,
             lastError = settings.lastError(),
-            syncing = running,
+            syncing = work.running,
+            pendingSync = work.pending && !work.running,
             themeMode = settings.themeMode(),
             educationLevel = settings.educationLevel(),
         )
     }
+
+    /** Fecha de fin sugerida para [level] en el curso actual. */
+    fun defaultCutoff(level: EducationLevel): LocalDate = CourseDates.defaultCutoff(graph.today(), level)
 
     fun completeSetup(
         username: String,
@@ -124,5 +142,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         SyncScheduler.cancelAll(getApplication())
         graph.settings.clearAll()
         graph.snapshots.clear()
+    }
+
+    private companion object {
+        val IDLE = WorkStatus(running = false, pending = false)
     }
 }

@@ -26,6 +26,9 @@ interface SettingsStore {
     fun setActiveAlertKeys(keys: Set<String>)
     fun lastError(): String?
     fun setLastError(message: String?)
+    /** iPasen rechazó estas credenciales: no se reintenta hasta que se guarden otras. */
+    fun credentialsRejected(): Boolean
+    fun setCredentialsRejected(value: Boolean)
     fun themeMode(): ThemeMode
     fun setThemeMode(value: ThemeMode)
     fun educationLevel(): EducationLevel
@@ -51,6 +54,7 @@ class PrefsSettingsStore(
         putString(KEY_PASS, cipher.encrypt(credentials.password))
         remove(KEY_ACTIVE_ALERTS)
         remove(KEY_LAST_ERROR)
+        remove(KEY_CREDENTIALS_REJECTED)
     }
 
     override fun clearAll() = write { clear() }
@@ -79,6 +83,10 @@ class PrefsSettingsStore(
     override fun setLastError(message: String?) = write {
         if (message == null) remove(KEY_LAST_ERROR) else putString(KEY_LAST_ERROR, message)
     }
+
+    override fun credentialsRejected(): Boolean = prefs.getBoolean(KEY_CREDENTIALS_REJECTED, false)
+
+    override fun setCredentialsRejected(value: Boolean) = write { putBoolean(KEY_CREDENTIALS_REJECTED, value) }
 
     override fun themeMode(): ThemeMode =
         prefs.getString(KEY_THEME, null)?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
@@ -109,5 +117,6 @@ class PrefsSettingsStore(
         private const val KEY_LAST_ERROR = "ultimo_error"
         private const val KEY_THEME = "tema"
         private const val KEY_EDUCATION_LEVEL = "etapa_educativa"
+        private const val KEY_CREDENTIALS_REJECTED = "credenciales_rechazadas"
     }
 }

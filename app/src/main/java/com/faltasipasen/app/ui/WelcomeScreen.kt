@@ -3,6 +3,8 @@ package com.faltasipasen.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,17 +46,21 @@ import java.time.LocalDate
 @Composable
 fun WelcomeScreen(
     initialLevel: EducationLevel,
-    initialThreshold: Double,
-    initialCutoff: LocalDate,
+    suggestedCutoff: (EducationLevel) -> LocalDate,
     onSubmit: (username: String, password: String, thresholdPercent: Double, cutoff: LocalDate, level: EducationLevel) -> Unit,
 ) {
     var level by rememberSaveable { mutableStateOf(initialLevel) }
     var username by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    // Cuando el usuario cambia la etapa, recalcular los valores sugeridos si aún no los tocó
-    var thresholdText by rememberSaveable(level) { mutableStateOf(formatNumber(level.defaultThreshold)) }
-    var cutoff by rememberSaveable(level) { mutableStateOf(initialCutoff) }
+    var thresholdText by rememberSaveable { mutableStateOf(formatNumber(initialLevel.defaultThreshold)) }
+    var cutoff by rememberSaveable { mutableStateOf(suggestedCutoff(initialLevel)) }
+    val selectLevel: (EducationLevel) -> Unit = { new ->
+        val (nextThreshold, nextCutoff) =
+            InputValidation.followLevelDefaults(level, new, thresholdText, cutoff, suggestedCutoff)
+        thresholdText = nextThreshold
+        cutoff = nextCutoff
+        level = new
+    }
 
     val threshold = InputValidation.parseThreshold(thresholdText)
 
@@ -86,7 +92,7 @@ fun WelcomeScreen(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth(),
         )
-        EducationLevelPicker(selected = level, onSelect = { level = it })
+        EducationLevelPicker(selected = level, onSelect = selectLevel)
 
         // ── Cuenta iPasen ─────────────────────────────────────────────────
         OutlinedTextField(
@@ -168,6 +174,7 @@ fun WelcomeScreen(
  *   preguntando si incluye FCT, discriminando entre [EducationLevel.FP_BASICO]
  *   y [EducationLevel.FP_BASICO_FCT].
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EducationLevelPicker(selected: EducationLevel, onSelect: (EducationLevel) -> Unit) {
     val nonFp = listOf(EducationLevel.PRIMARIA, EducationLevel.ESO, EducationLevel.BACHILLERATO)
@@ -175,8 +182,9 @@ fun EducationLevelPicker(selected: EducationLevel, onSelect: (EducationLevel) ->
     val fp = listOf(EducationLevel.FP_BASICO, EducationLevel.FP_MEDIO, EducationLevel.FP_SUPERIOR)
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        // Fila 1: etapas generales
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Fila 1: etapas generales. FlowRow: en pantallas estrechas los chips bajan de línea en
+        // vez de quedar cortados fuera de la tarjeta.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             nonFp.forEach { lvl ->
                 FilterChip(
                     selected = selected == lvl,
@@ -187,7 +195,7 @@ fun EducationLevelPicker(selected: EducationLevel, onSelect: (EducationLevel) ->
         }
 
         // Fila 2: FP — el chip de Grado Básico se activa para ambas variantes
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             fp.forEach { lvl ->
                 FilterChip(
                     selected = if (lvl == EducationLevel.FP_BASICO) selected.isFpBasico else selected == lvl,
