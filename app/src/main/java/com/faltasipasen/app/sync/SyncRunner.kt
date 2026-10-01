@@ -39,32 +39,38 @@ class SyncRunner(
     private val cutoffDateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
     suspend fun run(): SyncOutcome = mutex.withLock {
-        val credentials = settings.credentials() ?: return@withLock SyncOutcome.MissingCredentials
+        try {
+            val credentials = settings.credentials() ?: return@withLock SyncOutcome.MissingCredentials
 
-        val result = try {
-            scraper.scrape(credentials).also(::validate)
-        } catch (e: ScrapeException) {
-            return@withLock fail(e)
+            val result = try {
+                scraper.scrape(credentials).also(::validate)
+            } catch (e: ScrapeException) {
+                return@withLock fail(e)
+            }
+
+            val snapshot = Snapshot(result.schedule, result.calendar, result.absences, nowMillis())
+            snapshots.save(snapshot)
+
+            val stats = AbsenceCalculator.calculate(
+                snapshot.schedule, snapshot.calendar, snapshot.absences, settings.cutoffDate(), today(),
+            )
+            if (stats.lectivoDaysTotal == 0) {
+                val message = "La fecha de fin de curso (${stats.cutoff.format(cutoffDateFormat)}) " +
+                    "no cae en el curso que muestra iPasen. Revísala en Ajustes."
+                settings.setLastError(message)
+                return@withLock SyncOutcome.Failed(Reason.PARSE_ERROR, message)
+            }
+            val threshold = settings.thresholdPercent()
+            val evaluation = ThresholdEvaluator.evaluate(stats, threshold, settings.activeAlertKeys())
+            if (evaluation.newAlerts.isNotEmpty()) alerts.showThresholdAlerts(threshold, evaluation.newAlerts)
+            settings.setActiveAlertKeys(evaluation.activeKeys)
+            settings.setLastError(null)
+            return@withLock SyncOutcome.Success(stats, evaluation.newAlerts)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return@withLock fail(ScrapeException(Reason.PARSE_ERROR, "Error interno inesperado: ${e.message}"))
         }
-
-        val snapshot = Snapshot(result.schedule, result.calendar, result.absences, nowMillis())
-        snapshots.save(snapshot)
-
-        val stats = AbsenceCalculator.calculate(
-            snapshot.schedule, snapshot.calendar, snapshot.absences, settings.cutoffDate(), today(),
-        )
-        if (stats.lectivoDaysTotal == 0) {
-            val message = "La fecha de fin de clases (${stats.cutoff.format(cutoffDateFormat)}) " +
-                "no cae en el curso que muestra iPasen. Revísala en Ajustes."
-            settings.setLastError(message)
-            return@withLock SyncOutcome.Failed(Reason.PARSE_ERROR, message)
-        }
-        val threshold = settings.thresholdPercent()
-        val evaluation = ThresholdEvaluator.evaluate(stats, threshold, settings.activeAlertKeys())
-        if (evaluation.newAlerts.isNotEmpty()) alerts.showThresholdAlerts(threshold, evaluation.newAlerts)
-        settings.setActiveAlertKeys(evaluation.activeKeys)
-        settings.setLastError(null)
-        SyncOutcome.Success(stats, evaluation.newAlerts)
     }
 
     private fun validate(result: ScrapeResult) {

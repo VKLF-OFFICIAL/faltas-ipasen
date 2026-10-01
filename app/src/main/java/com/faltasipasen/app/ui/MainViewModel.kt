@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 
+import com.faltasipasen.app.domain.EducationLevel
+
 data class UiState(
     val hasCredentials: Boolean,
     val username: String,
@@ -33,6 +35,7 @@ data class UiState(
     val lastError: String?,
     val syncing: Boolean,
     val themeMode: ThemeMode,
+    val educationLevel: EducationLevel,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -70,11 +73,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             lastError = settings.lastError(),
             syncing = running,
             themeMode = settings.themeMode(),
+            educationLevel = settings.educationLevel(),
         )
     }
 
-    fun completeSetup(username: String, password: String, thresholdPercent: Double, cutoff: LocalDate) {
+    fun completeSetup(
+        username: String,
+        password: String,
+        thresholdPercent: Double,
+        cutoff: LocalDate,
+        level: EducationLevel,
+    ) {
         val settings = graph.settings
+        settings.setEducationLevel(level)
         settings.setThresholdPercent(thresholdPercent)
         settings.setCutoffDate(cutoff)
         settings.saveCredentials(Credentials(username.trim(), password))
@@ -82,8 +93,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         SyncScheduler.syncNow(getApplication())
     }
 
-    fun saveSettings(thresholdPercent: Double, cutoff: LocalDate, intervalHours: Int, username: String, newPassword: String) {
+    fun saveSettings(
+        thresholdPercent: Double,
+        cutoff: LocalDate,
+        intervalHours: Int,
+        username: String,
+        newPassword: String,
+        level: EducationLevel,
+    ) {
         val settings = graph.settings
+        settings.setEducationLevel(level)
         settings.setThresholdPercent(thresholdPercent)
         settings.setCutoffDate(cutoff)
         settings.setSyncIntervalHours(intervalHours)

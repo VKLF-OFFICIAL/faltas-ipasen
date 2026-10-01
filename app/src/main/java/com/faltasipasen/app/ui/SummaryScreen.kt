@@ -70,12 +70,12 @@ fun SummaryScreen(state: UiState, onSync: () -> Unit, onOpenSubject: (String) ->
             if (stats == null) {
                 item { EmptySummary(state.syncing, onSync) }
             } else if (stats.lectivoDaysTotal == 0) {
-                item { CutoffMismatchCard(stats.cutoff) }
+                item { CutoffMismatchCard(stats.cutoff, state.educationLevel.cutoffFieldLabel) }
             } else {
                 item { MainPercentCard(stats.global, state.thresholdPercent) }
                 item { BreakdownRow(stats.global) }
                 item { CourseProgressCard(stats) }
-                item { SectionTitle("Módulos") }
+                item { SectionTitle(state.educationLevel.subjectLabel) }
                 items(stats.subjects, key = { it.label }) { subject ->
                     SubjectRow(subject, state.thresholdPercent, onClick = { onOpenSubject(subject.label) })
                 }
@@ -196,13 +196,13 @@ private fun CourseProgressCard(stats: AbsenceStats) {
 }
 
 @Composable
-private fun CutoffMismatchCard(cutoff: LocalDate) {
+private fun CutoffMismatchCard(cutoff: LocalDate, cutoffFieldLabel: String) {
     FlatCard {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Revisa la fecha de fin de clases", style = MaterialTheme.typography.titleMedium)
+            Text("Revisa la fecha de fin de curso", style = MaterialTheme.typography.titleMedium)
             Text(
-                "La fecha elegida (${formatLongDate(cutoff)}) no coincide con el curso del calendario de iPasen. " +
-                    "Cámbiala en Ajustes.",
+                "La fecha de «$cutoffFieldLabel» (${formatLongDate(cutoff)}) no coincide con el curso " +
+                    "del calendario de iPasen. Cámbiala en Ajustes.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

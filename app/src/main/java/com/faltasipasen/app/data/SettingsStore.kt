@@ -3,6 +3,7 @@ package com.faltasipasen.app.data
 import android.content.SharedPreferences
 import com.faltasipasen.app.domain.CourseDates
 import com.faltasipasen.app.domain.Credentials
+import com.faltasipasen.app.domain.EducationLevel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,8 @@ interface SettingsStore {
     fun setLastError(message: String?)
     fun themeMode(): ThemeMode
     fun setThemeMode(value: ThemeMode)
+    fun educationLevel(): EducationLevel
+    fun setEducationLevel(value: EducationLevel)
 }
 
 class PrefsSettingsStore(
@@ -53,13 +56,13 @@ class PrefsSettingsStore(
     override fun clearAll() = write { clear() }
 
     override fun thresholdPercent(): Double =
-        prefs.getString(KEY_THRESHOLD, null)?.toDoubleOrNull() ?: DEFAULT_THRESHOLD
+        prefs.getString(KEY_THRESHOLD, null)?.toDoubleOrNull() ?: educationLevel().defaultThreshold
 
     override fun setThresholdPercent(value: Double) = write { putString(KEY_THRESHOLD, value.toString()) }
 
     override fun cutoffDate(): LocalDate =
         prefs.getString(KEY_CUTOFF, null)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-            ?: CourseDates.defaultCutoff(today())
+            ?: CourseDates.defaultCutoff(today(), educationLevel())
 
     override fun setCutoffDate(value: LocalDate) = write { putString(KEY_CUTOFF, value.toString()) }
 
@@ -83,13 +86,19 @@ class PrefsSettingsStore(
 
     override fun setThemeMode(value: ThemeMode) = write { putString(KEY_THEME, value.name) }
 
+    override fun educationLevel(): EducationLevel =
+        prefs.getString(KEY_EDUCATION_LEVEL, null)
+            ?.let { stored -> EducationLevel.entries.firstOrNull { it.name == stored } }
+            ?: EducationLevel.FP_SUPERIOR
+
+    override fun setEducationLevel(value: EducationLevel) = write { putString(KEY_EDUCATION_LEVEL, value.name) }
+
     private fun write(block: SharedPreferences.Editor.() -> Unit) {
         prefs.edit().apply(block).apply()
         version.update { it + 1 }
     }
 
     companion object {
-        const val DEFAULT_THRESHOLD = 15.0
         const val DEFAULT_INTERVAL_HOURS = 12
         private const val KEY_USER = "usuario_cifrado"
         private const val KEY_PASS = "clave_cifrada"
@@ -99,5 +108,6 @@ class PrefsSettingsStore(
         private const val KEY_ACTIVE_ALERTS = "avisos_activos"
         private const val KEY_LAST_ERROR = "ultimo_error"
         private const val KEY_THEME = "tema"
+        private const val KEY_EDUCATION_LEVEL = "etapa_educativa"
     }
 }

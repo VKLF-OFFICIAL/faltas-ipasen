@@ -74,10 +74,11 @@ private fun AppRoot(viewModel: MainViewModel) {
 
     if (!state.hasCredentials) {
         WelcomeScreen(
+            initialLevel = state.educationLevel,
             initialThreshold = state.thresholdPercent,
             initialCutoff = state.cutoffDate,
-            onSubmit = { username, password, threshold, cutoff ->
-                viewModel.completeSetup(username, password, threshold, cutoff)
+            onSubmit = { username, password, threshold, cutoff, level ->
+                viewModel.completeSetup(username, password, threshold, cutoff, level)
                 if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 tab = Tab.Summary
             },
@@ -112,7 +113,9 @@ private fun AppRoot(viewModel: MainViewModel) {
                 Tab.Settings -> SettingsScreen(
                     state = state,
                     onThemeChange = viewModel::setThemeMode,
-                    onSave = viewModel::saveSettings,
+                    onSave = { threshold, cutoff, interval, username, password, level ->
+                        viewModel.saveSettings(threshold, cutoff, interval, username, password, level)
+                    },
                     onLogout = {
                         viewModel.logout()
                         historyFilter = null

@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.faltasipasen.app.BuildConfig
 import com.faltasipasen.app.data.ThemeMode
+import com.faltasipasen.app.domain.EducationLevel
 import com.faltasipasen.app.ui.theme.LocalRiskColors
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -52,9 +53,10 @@ private val themeLabels = mapOf(
 fun SettingsScreen(
     state: UiState,
     onThemeChange: (ThemeMode) -> Unit,
-    onSave: (thresholdPercent: Double, cutoff: LocalDate, intervalHours: Int, username: String, newPassword: String) -> Unit,
+    onSave: (thresholdPercent: Double, cutoff: LocalDate, intervalHours: Int, username: String, newPassword: String, level: EducationLevel) -> Unit,
     onLogout: () -> Unit,
 ) {
+    var level by rememberSaveable { mutableStateOf(state.educationLevel) }
     var thresholdText by rememberSaveable { mutableStateOf(formatNumber(state.thresholdPercent)) }
     var cutoff by rememberSaveable { mutableStateOf(state.cutoffDate) }
     var interval by rememberSaveable { mutableIntStateOf(state.syncIntervalHours) }
@@ -72,11 +74,15 @@ fun SettingsScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         ScreenHeader(title = "Ajustes", subtitle = null)
 
+        // ── Apariencia ────────────────────────────────────────────────────
         SettingsSection("Apariencia") {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 ThemeMode.entries.forEachIndexed { index, mode ->
@@ -90,6 +96,17 @@ fun SettingsScreen(
             }
         }
 
+        // ── Etapa educativa ───────────────────────────────────────────────
+        SettingsSection("Etapa educativa") {
+            Text(
+                "Cambiando la etapa se actualizarán las sugerencias de umbral y fecha fin.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            EducationLevelPicker(selected = level, onSelect = { level = it })
+        }
+
+        // ── Avisos ────────────────────────────────────────────────────────
         SettingsSection("Avisos") {
             OutlinedTextField(
                 value = thresholdText,
@@ -101,9 +118,15 @@ fun SettingsScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            CutoffDateField(value = cutoff, onChange = { cutoff = it }, modifier = Modifier.fillMaxWidth())
+            CutoffDateField(
+                value = cutoff,
+                onChange = { cutoff = it },
+                label = level.cutoffFieldLabel,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
+        // ── Sincronización ────────────────────────────────────────────────
         SettingsSection("Sincronización") {
             Text("Comprobar iPasen cada", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -113,6 +136,7 @@ fun SettingsScreen(
             }
         }
 
+        // ── Cuenta ────────────────────────────────────────────────────────
         SettingsSection("Cuenta de iPasen") {
             OutlinedTextField(
                 value = username,
@@ -134,7 +158,7 @@ fun SettingsScreen(
 
         Button(
             onClick = {
-                onSave(threshold!!, cutoff, interval, username, newPassword)
+                onSave(threshold!!, cutoff, interval, username, newPassword, level)
                 newPassword = ""
                 savedAt = System.currentTimeMillis()
             },
@@ -150,7 +174,9 @@ fun SettingsScreen(
 
         Text(
             "Versión ${BuildConfig.VERSION_NAME} · Datos solo en este móvil",
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -104,10 +104,15 @@ fun ScreenHeader(title: String, subtitle: String?, action: (@Composable () -> Un
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CutoffDateField(value: LocalDate, onChange: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
+fun CutoffDateField(
+    value: LocalDate,
+    onChange: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "Fin de clases (inicio FCT)",
+) {
     var open by remember { mutableStateOf(false) }
     OutlinedButton(onClick = { open = true }, modifier = modifier) {
-        Text("Fin de clases (inicio FCT): ${formatLongDate(value)}")
+        Text("$label: ${formatLongDate(value)}")
     }
     if (open) {
         val pickerState = rememberDatePickerState(

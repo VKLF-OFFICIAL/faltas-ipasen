@@ -1,6 +1,7 @@
 package com.faltasipasen.app.data
 
 import com.faltasipasen.app.domain.Credentials
+import com.faltasipasen.app.domain.EducationLevel
 import com.faltasipasen.app.testutil.InMemorySharedPreferences
 import com.faltasipasen.app.testutil.ReversingCipher
 import org.junit.Assert.assertEquals
@@ -103,5 +104,29 @@ class PrefsSettingsStoreTest {
     fun `unknown stored theme falls back to system`() {
         prefs.values["tema"] = "SEPIA"
         assertEquals(ThemeMode.SYSTEM, store.themeMode())
+    }
+
+    @Test
+    fun `education level defaults to FP_SUPERIOR`() {
+        assertEquals(EducationLevel.FP_SUPERIOR, store.educationLevel())
+    }
+
+    @Test
+    fun `education level is persisted`() {
+        store.setEducationLevel(EducationLevel.ESO)
+        val reopened = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate.of(2026, 9, 28) }
+        assertEquals(EducationLevel.ESO, reopened.educationLevel())
+    }
+
+    @Test
+    fun `unknown stored education level falls back to FP_SUPERIOR`() {
+        prefs.values["etapa_educativa"] = "UNIVERSIDAD"
+        assertEquals(EducationLevel.FP_SUPERIOR, store.educationLevel())
+    }
+
+    @Test
+    fun `threshold default adapts to the selected education level`() {
+        store.setEducationLevel(EducationLevel.PRIMARIA)
+        assertEquals(20.0, store.thresholdPercent(), 0.0)
     }
 }

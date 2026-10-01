@@ -17,14 +17,7 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
 
     override suspend fun doWork(): Result {
         val graph = (applicationContext as FaltasApp).graph
-        val outcome = try {
-            graph.syncRunner.run()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            graph.settings.setLastError("Error inesperado al sincronizar: ${e.javaClass.simpleName}")
-            return Result.failure()
-        }
+        val outcome = graph.syncRunner.run()
         return when (outcome) {
             is SyncOutcome.Success, SyncOutcome.MissingCredentials -> Result.success()
             is SyncOutcome.Failed -> when (outcome.reason) {

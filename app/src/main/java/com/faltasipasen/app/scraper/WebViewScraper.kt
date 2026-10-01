@@ -34,6 +34,12 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
                 withTimeout(TOTAL_TIMEOUT_MS) { session.run(credentials) }
             } catch (e: TimeoutCancellationException) {
                 throw ScrapeException(Reason.TIMEOUT, "la sincronización completa superó el tiempo máximo")
+            } catch (e: ScrapeException) {
+                throw e
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                throw ScrapeException(Reason.PARSE_ERROR, "Fallo interno en el scraper: ${e.message}")
             } finally {
                 session.destroy()
             }
