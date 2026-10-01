@@ -42,7 +42,9 @@ class FileSnapshotStore(private val file: File) : SnapshotStore {
 
     @Synchronized
     override fun clear() {
-        file.delete()
+        // Si no se puede borrar, al menos no deja las faltas en disco tras cerrar sesión.
+        if (!file.delete() && file.exists()) runCatching { file.writeText("") }
+        File(file.parentFile, "${file.name}.tmp").delete()
         state.value = null
     }
 

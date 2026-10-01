@@ -8,9 +8,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <!-- Hasta Android 11, allowBackup="false" ya bloquea copias y transferencias; desde Android 12
+         lo hace dataExtractionRules. -->
     <application
+        tools:ignore="DataExtractionRules"
         android:name=".FaltasApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"

@@ -25,12 +25,18 @@ run(async function () {
 
   var slots = [];
   Array.prototype.slice.call(tables.grid.rows, 1).forEach(function (row) {
-    var hours = tramoHours(row.cells[0].innerText);
+    if (!row.cells.length) return;
+    var found = [];
     Array.prototype.slice.call(row.cells, 1).forEach(function (cell, i) {
       var day = columnDay[i + 1];
       var abbr = cell.innerText.trim().split('\n')[0].trim();
-      if (day > 0 && names[abbr]) slots.push({ subject: names[abbr], abbr: abbr, day: day, hours: hours });
+      if (day > 0 && names[abbr]) found.push({ subject: names[abbr], abbr: abbr, day: day });
     });
+    // Rows without classes (e.g. "RECREO") may carry no time range: skip them. A row with classes
+    // still needs one (tramoHours throws), so its hours are never dropped silently.
+    if (!found.length) return;
+    var hours = tramoHours(row.cells[0].innerText);
+    found.forEach(function (slot) { slot.hours = hours; slots.push(slot); });
   });
   if (!slots.length) throw new Error('horario vacío o con un formato desconocido');
   return slots;

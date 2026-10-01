@@ -1,7 +1,9 @@
-// Prelude for every step. The caller defines STEP (and CREDS for login).
+// Prelude for every step. The caller defines TOKEN, STEP (and CREDS for login).
 // Contract: every step ends by calling report() exactly once through run().
+// AndroidBridge is visible to every frame; TOKEN lives only in this closure, so a third-party
+// iframe cannot forge results.
 function report(payload) {
-  AndroidBridge.onResult(STEP, JSON.stringify(payload));
+  AndroidBridge.onResult(TOKEN, STEP, JSON.stringify(payload));
 }
 
 function run(fn) {

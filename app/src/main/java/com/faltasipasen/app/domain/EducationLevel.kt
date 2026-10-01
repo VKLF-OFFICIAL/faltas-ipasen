@@ -89,6 +89,9 @@ enum class EducationLevel(
     /** True si el nivel es cualquier variante de Grado Básico. */
     val isFpBasico: Boolean get() = this == FP_BASICO || this == FP_BASICO_FCT
 
+    /** "este módulo" en FP, "esta asignatura" en el resto. */
+    val thisSubjectText: String get() = if (subjectLabel == "Módulos") "este módulo" else "esta asignatura"
+
     /** Texto descriptivo del campo "fecha fin" adaptado a la etapa. */
     val cutoffFieldLabel: String get() = if (hasFct) "Fin de clases (inicio FCT)" else "Fin del curso"
 

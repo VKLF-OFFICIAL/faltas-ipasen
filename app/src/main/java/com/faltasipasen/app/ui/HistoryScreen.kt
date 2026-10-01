@@ -31,7 +31,12 @@ import com.faltasipasen.app.ui.theme.LocalRiskColors
 import com.faltasipasen.app.ui.theme.Tabular
 
 @Composable
-fun HistoryScreen(history: List<HistoryDay>, filter: String?, onFilterChange: (String?) -> Unit) {
+fun HistoryScreen(
+    history: List<HistoryDay>,
+    filter: String?,
+    thisSubjectText: String,
+    onFilterChange: (String?) -> Unit,
+) {
     val options = remember(history) { HistoryBuilder.filterOptions(history) }
     val days = remember(history, filter) { HistoryBuilder.filter(history, filter) }
     val entries = days.flatMap { it.entries }
@@ -58,7 +63,7 @@ fun HistoryScreen(history: List<HistoryDay>, filter: String?, onFilterChange: (S
         if (days.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    if (filter == null) "Sin faltas registradas. ¡Sigue así!" else "Sin faltas en este módulo.",
+                    if (filter == null) "Sin faltas registradas. ¡Sigue así!" else "Sin faltas en $thisSubjectText.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

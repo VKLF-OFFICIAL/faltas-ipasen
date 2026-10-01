@@ -1,5 +1,8 @@
 package com.faltasipasen.app.ui
 
+import android.app.NotificationManager
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -32,20 +35,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.faltasipasen.app.R
+import com.faltasipasen.app.notify.NotificationAlertSink
 import com.faltasipasen.app.domain.AbsenceStats
 import com.faltasipasen.app.domain.AlertFormatter
 import com.faltasipasen.app.domain.HoursStats
@@ -58,6 +69,7 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SummaryScreen(state: UiState, onSync: () -> Unit, onOpenSubject: (String) -> Unit) {
+    val notificationsEnabled = rememberNotificationsEnabled()
     PullToRefreshBox(isRefreshing = state.syncing, onRefresh = onSync, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -65,6 +77,7 @@ fun SummaryScreen(state: UiState, onSync: () -> Unit, onOpenSubject: (String) ->
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { SummaryHeader(state, onSync) }
+            if (!notificationsEnabled) item { NotificationsOffNote() }
             state.lastError?.let { error -> item { ErrorNote(error) } }
             val stats = state.stats
             if (stats == null) {
@@ -259,8 +272,46 @@ private fun SubjectRow(subject: HoursStats, threshold: Double, onClick: () -> Un
     }
 }
 
+/** Se vuelve a comprobar al volver a la app (p. ej. tras activarlas en los ajustes de Android). */
 @Composable
-private fun ErrorNote(message: String) {
+private fun rememberNotificationsEnabled(): Boolean {
+    val context = LocalContext.current
+    var enabled by remember { mutableStateOf(true) }
+    LifecycleResumeEffect(Unit) {
+        val manager = NotificationManagerCompat.from(context)
+        val alertsChannel = manager.getNotificationChannel(NotificationAlertSink.CHANNEL_ALERTS)
+        enabled = manager.areNotificationsEnabled() &&
+            alertsChannel?.importance != NotificationManager.IMPORTANCE_NONE
+        onPauseOrDispose { }
+    }
+    return enabled
+}
+
+@Composable
+private fun NotificationsOffNote() {
+    val context = LocalContext.current
+    val color = LocalRiskColors.current.medium
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.12f))
+            .padding(start = 14.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "Las notificaciones están desactivadas: no te avisaremos al superar el umbral.",
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        TextButton(onClick = {
+            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            runCatching { context.startActivity(intent) }
+        }) { Text("Activar") }
+    }
+}
+
+@Composable
+fun ErrorNote(message: String) {
     val color = LocalRiskColors.current.high
     Box(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.10f)).padding(14.dp),

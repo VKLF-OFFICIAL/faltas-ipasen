@@ -47,6 +47,7 @@ import java.time.LocalDate
 fun WelcomeScreen(
     initialLevel: EducationLevel,
     suggestedCutoff: (EducationLevel) -> LocalDate,
+    notices: List<String>,
     onSubmit: (username: String, password: String, thresholdPercent: Double, cutoff: LocalDate, level: EducationLevel) -> Unit,
 ) {
     var level by rememberSaveable { mutableStateOf(initialLevel) }
@@ -84,6 +85,7 @@ fun WelcomeScreen(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(4.dp))
+        notices.forEach { ErrorNote(it) }
 
         // ── Selector de etapa ──────────────────────────────────────────────
         Text(

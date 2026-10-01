@@ -101,15 +101,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         thresholdPercent: Double,
         cutoff: LocalDate,
         level: EducationLevel,
-    ) {
+    ): Boolean {
         val settings = graph.settings
         settings.setEducationLevel(level)
         settings.setThresholdPercent(thresholdPercent)
         settings.setCutoffDate(cutoff)
-        settings.saveCredentials(Credentials(username.trim(), password))
+        if (!saveCredentials(Credentials(username.trim(), password))) return false
         SyncScheduler.schedulePeriodic(getApplication(), settings.syncIntervalHours())
         SyncScheduler.syncNow(getApplication())
+        return true
     }
+
+    /** El Keystore puede fallar en algunos móviles; mejor un aviso que cerrar la app. */
+    private fun saveCredentials(credentials: Credentials): Boolean =
+        try {
+            graph.settings.saveCredentials(credentials)
+            true
+        } catch (e: Exception) {
+            graph.settings.setLastError("$KEYSTORE_ERROR (${e.message ?: e.javaClass.simpleName}). Inténtalo de nuevo.")
+            false
+        }
 
     fun saveSettings(
         thresholdPercent: Double,
@@ -118,7 +129,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         username: String,
         newPassword: String,
         level: EducationLevel,
-    ) {
+    ): Boolean {
         val settings = graph.settings
         settings.setEducationLevel(level)
         settings.setThresholdPercent(thresholdPercent)
@@ -126,12 +137,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         settings.setSyncIntervalHours(intervalHours)
         SyncScheduler.schedulePeriodic(getApplication(), intervalHours)
 
-        val current = settings.credentials() ?: return
+        val current = settings.credentials() ?: return true
         val newUsername = username.trim()
         if (newUsername != current.username || newPassword.isNotEmpty()) {
-            settings.saveCredentials(Credentials(newUsername, newPassword.ifEmpty { current.password }))
+            if (!saveCredentials(Credentials(newUsername, newPassword.ifEmpty { current.password }))) return false
             SyncScheduler.syncNow(getApplication())
         }
+        return true
     }
 
     fun syncNow() = SyncScheduler.syncNow(getApplication())
@@ -144,7 +156,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         graph.snapshots.clear()
     }
 
-    private companion object {
-        val IDLE = WorkStatus(running = false, pending = false)
+    companion object {
+        const val KEYSTORE_ERROR = "No se pudo guardar la contraseña de forma segura en este móvil"
+        private val IDLE = WorkStatus(running = false, pending = false)
     }
 }

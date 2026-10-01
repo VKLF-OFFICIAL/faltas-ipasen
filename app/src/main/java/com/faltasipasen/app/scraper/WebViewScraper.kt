@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
+import java.util.UUID
 import kotlin.coroutines.resume
 
 class WebViewScraper(private val context: Context) : IpasenScraper {
@@ -59,14 +60,16 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
         data class Failed(val description: String, val reason: Reason = Reason.NETWORK) : PageEvent
     }
 
-    private class Bridge(private val results: Channel<Pair<String, String>>) {
+    /** Solo acepta resultados con el [token] de la sesión: el puente es visible para cualquier iframe. */
+    private class Bridge(private val results: Channel<Pair<String, String>>, private val token: String) {
         @JavascriptInterface
-        fun onResult(step: String, json: String) {
-            results.trySend(step to json)
+        fun onResult(token: String, step: String, json: String) {
+            if (token == this.token) results.trySend(step to json)
         }
     }
 
     private class Session(private val context: Context) {
+        private val token = UUID.randomUUID().toString()
         private val pageEvents = Channel<PageEvent>(Channel.UNLIMITED)
         private val results = Channel<Pair<String, String>>(Channel.UNLIMITED)
         private val webView: WebView = createWebView()
@@ -76,7 +79,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.userAgentString = settings.userAgentString.replace("; wv", "")
-            addJavascriptInterface(Bridge(results), BRIDGE_NAME)
+            addJavascriptInterface(Bridge(results, token), BRIDGE_NAME)
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val host = request.url.host
@@ -198,6 +201,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
 
         private fun buildScript(step: String, asset: String, prelude: String): String = buildString {
             append("(function(){\n")
+            append("const TOKEN=").append(JSONObject.quote(token)).append(";\n")
             append("const STEP=").append(JSONObject.quote(step)).append(";\n")
             append(prelude).append('\n')
             append(readAsset(COMMON_ASSET)).append('\n')

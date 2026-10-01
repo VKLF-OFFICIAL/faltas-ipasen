@@ -59,6 +59,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private const val CREDENTIALS_LOST =
+    "No se han podido leer tu usuario y contraseña guardados (puede pasar al cambiar el bloqueo " +
+        "de pantalla). Vuelve a introducirlos; tus datos descargados siguen aquí."
+
 private enum class Tab(val label: String, val icon: ImageVector) {
     Summary("Resumen", Icons.Rounded.Home),
     History("Historial", Icons.AutoMirrored.Rounded.List),
@@ -76,10 +80,17 @@ private fun AppRoot(viewModel: MainViewModel) {
         WelcomeScreen(
             initialLevel = state.educationLevel,
             suggestedCutoff = viewModel::defaultCutoff,
+            notices = listOfNotNull(
+                // Hay datos descargados pero no credenciales: el Keystore ya no puede descifrarlas.
+                CREDENTIALS_LOST.takeIf { state.stats != null },
+                // Solo el fallo al guardar; un error de sincronización anterior aquí no aporta nada.
+                state.lastError?.takeIf { it.startsWith(MainViewModel.KEYSTORE_ERROR) },
+            ),
             onSubmit = { username, password, threshold, cutoff, level ->
-                viewModel.completeSetup(username, password, threshold, cutoff, level)
-                if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                tab = Tab.Summary
+                if (viewModel.completeSetup(username, password, threshold, cutoff, level)) {
+                    if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    tab = Tab.Summary
+                }
             },
         )
         return
@@ -108,7 +119,12 @@ private fun AppRoot(viewModel: MainViewModel) {
                     onSync = viewModel::syncNow,
                     onOpenSubject = { key -> historyFilter = key; tab = Tab.History },
                 )
-                Tab.History -> HistoryScreen(state.history, historyFilter, onFilterChange = { historyFilter = it })
+                Tab.History -> HistoryScreen(
+                    state.history,
+                    historyFilter,
+                    thisSubjectText = state.educationLevel.thisSubjectText,
+                    onFilterChange = { historyFilter = it },
+                )
                 Tab.Settings -> SettingsScreen(
                     state = state,
                     onThemeChange = viewModel::setThemeMode,

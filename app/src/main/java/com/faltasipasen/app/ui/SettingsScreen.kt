@@ -54,7 +54,8 @@ fun SettingsScreen(
     state: UiState,
     onThemeChange: (ThemeMode) -> Unit,
     suggestedCutoff: (EducationLevel) -> LocalDate,
-    onSave: (thresholdPercent: Double, cutoff: LocalDate, intervalHours: Int, username: String, newPassword: String, level: EducationLevel) -> Unit,
+    /** Devuelve false si no se pudo guardar la contraseña (el motivo queda en [UiState.lastError]). */
+    onSave: (thresholdPercent: Double, cutoff: LocalDate, intervalHours: Int, username: String, newPassword: String, level: EducationLevel) -> Boolean,
     onLogout: () -> Unit,
 ) {
     var level by rememberSaveable { mutableStateOf(state.educationLevel) }
@@ -65,6 +66,7 @@ fun SettingsScreen(
     var newPassword by remember { mutableStateOf("") }
     var confirmLogout by remember { mutableStateOf(false) }
     var savedAt by remember { mutableLongStateOf(0L) }
+    var saveFailed by remember { mutableStateOf(false) }
     val threshold = InputValidation.parseThreshold(thresholdText)
 
     LaunchedEffect(savedAt) {
@@ -166,13 +168,16 @@ fun SettingsScreen(
 
         Button(
             onClick = {
-                onSave(threshold!!, cutoff, interval, username, newPassword, level)
-                newPassword = ""
-                savedAt = System.currentTimeMillis()
+                saveFailed = !onSave(threshold!!, cutoff, interval, username, newPassword, level)
+                if (!saveFailed) {
+                    newPassword = ""
+                    savedAt = System.currentTimeMillis()
+                }
             },
             enabled = threshold != null && username.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text(if (savedAt != 0L) "Cambios guardados" else "Guardar cambios") }
+        if (saveFailed) state.lastError?.let { ErrorNote(it) }
 
         OutlinedButton(
             onClick = { confirmLogout = true },

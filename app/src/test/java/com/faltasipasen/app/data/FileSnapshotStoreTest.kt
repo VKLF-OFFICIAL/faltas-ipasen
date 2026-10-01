@@ -62,6 +62,15 @@ class FileSnapshotStoreTest {
     }
 
     @Test
+    fun `clear also removes a leftover temporary file from an interrupted save`() {
+        val store = FileSnapshotStore(file())
+        store.save(snapshot)
+        val leftover = File(tmp.root, "snapshot.json.tmp").apply { writeText("{}") }
+        store.clear()
+        assertFalse(leftover.exists())
+    }
+
+    @Test
     fun `snapshot saved before the new fields existed still loads`() {
         file().writeText(
             """{"schedule":[{"subject":"REDES","dayOfWeek":1,"hours":1.0}],""" +
