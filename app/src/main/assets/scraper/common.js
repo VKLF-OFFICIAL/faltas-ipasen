@@ -77,6 +77,13 @@ function onPage(title) {
   });
 }
 
+// Séneca's menu navigation object, once its script has loaded. It may be a top-level `let`, so it
+// is looked up by name rather than on window.
+function navigation() {
+  /* global Navegacion */
+  return typeof Navegacion !== 'undefined' && Navegacion && typeof Navegacion.llamadaMenu === 'function' ? Navegacion : null;
+}
+
 // Séneca uses one-time URLs, so sections are opened through their menu entry. That reloads the
 // page and the engine injects this step again; the second run finds the section already open.
 // The sessionStorage mark stops a re-injection on an intermediate page from clicking twice.
@@ -85,8 +92,17 @@ async function openSection(menuId, title) {
   var key = '__faltas_menu_' + menuId;
   if (Date.now() - Number(sessionStorage.getItem(key) || 0) > 20000) {
     var item = await waitFor(function () { return document.getElementById(menuId); }, 30000, 'la opción de menú ' + menuId);
+    // The menu can be in the DOM before Séneca's navigation script has loaded (seen on other
+    // users' phones as "Navegacion is not defined"). Wait for it; if it never appears, fall back
+    // to clicking the entry, whose own handler opens the section.
+    var nav = await waitFor(navigation, 15000).catch(function () { return null; });
     sessionStorage.setItem(key, String(Date.now()));
-    Navegacion.llamadaMenu(item);
+    if (nav) {
+      nav.llamadaMenu(document.getElementById(menuId) || item);
+    } else {
+      var target = document.getElementById(menuId) || item;
+      (target.querySelector('a') || target).click();
+    }
   }
   await waitFor(function () { return onPage(title); }, 45000, 'la página ' + title);
 }
