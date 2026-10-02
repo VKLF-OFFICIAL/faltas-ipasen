@@ -73,7 +73,7 @@ function setNativeValue(input, value) {
 
 function onPage(title) {
   return Array.prototype.some.call(document.querySelectorAll('h1,h2,h3,h4'), function (h) {
-    return h.innerText.toUpperCase().indexOf(title) >= 0;
+    return title.test(h.innerText);
   });
 }
 
@@ -87,24 +87,71 @@ function navigation() {
 // Séneca uses one-time URLs, so sections are opened through their menu entry. That reloads the
 // page and the engine injects this step again; the second run finds the section already open.
 // The sessionStorage mark stops a re-injection on an intermediate page from clicking twice.
-async function openSection(menuId, title) {
-  if (onPage(title)) return;
-  var key = '__faltas_menu_' + menuId;
+// section = { id, label, paths: [[regex per menu level, outermost first], …alternatives], title: regex }.
+async function openSection(section) {
+  if (onPage(section.title)) return;
+  var key = '__faltas_menu_' + section.id;
   if (Date.now() - Number(sessionStorage.getItem(key) || 0) > 20000) {
-    var item = await waitFor(function () { return document.getElementById(menuId); }, 30000, 'la opción de menú ' + menuId);
+    var item = await findMenuEntry(section);
     // The menu can be in the DOM before Séneca's navigation script has loaded (seen on other
     // users' phones as "Navegacion is not defined"). Wait for it; if it never appears, fall back
     // to clicking the entry, whose own handler opens the section.
     var nav = await waitFor(navigation, 15000).catch(function () { return null; });
     sessionStorage.setItem(key, String(Date.now()));
-    if (nav) {
-      nav.llamadaMenu(document.getElementById(menuId) || item);
-    } else {
-      var target = document.getElementById(menuId) || item;
-      (target.querySelector('a') || target).click();
-    }
+    if (nav) nav.llamadaMenu(item);
+    else item.click();
   }
-  await waitFor(function () { return onPage(title); }, 45000, 'la página ' + title);
+  await waitFor(function () { return onPage(section.title); }, 45000, 'la página ' + section.label);
+}
+
+function menuLinks() {
+  return Array.prototype.slice.call(document.querySelectorAll('a[onclick*="llamadaMenu"]'));
+}
+
+// Menu levels of an entry, outermost first: ["Seguimiento del curso", "Faltas de asistencia", "Consulta"].
+function menuPath(link) {
+  var path = [link.textContent.replace(/\s+/g, ' ').trim()];
+  var li = link.closest('li');
+  while (li && li.parentElement) {
+    li = li.parentElement.closest('li');
+    var title = li && li.querySelector(':scope > a');
+    if (title) path.unshift(title.textContent.replace(/\s+/g, ' ').trim());
+  }
+  return path;
+}
+
+// Each regex must match a menu level, in order, and the last one the entry itself.
+function pathMatches(path, patterns) {
+  var level = 0;
+  for (var i = 0; i < patterns.length; i++) {
+    while (level < path.length && !patterns[i].test(path[level])) level++;
+    if (level >= path.length) return false;
+    if (i === patterns.length - 1 && level !== path.length - 1) return false;
+    level++;
+  }
+  return true;
+}
+
+// Menu ids differ between accounts (another user's menu had no #h1448725599), so the known id
+// is only a shortcut and the entry is otherwise found by its menu path.
+async function findMenuEntry(section) {
+  await waitFor(function () { return menuLinks().length; }, 30000, 'el menú de Séneca');
+  var started = Date.now();
+  while (true) {
+    var byId = document.getElementById(section.id);
+    if (byId && /llamadaMenu/.test(byId.getAttribute('onclick') || '')) return byId;
+    var links = menuLinks();
+    for (var i = 0; i < section.paths.length; i++) {
+      var byPath = links.find(function (a) { return pathMatches(menuPath(a), section.paths[i]); });
+      if (byPath) return byPath;
+    }
+    // The menu is rendered in one go; a short grace period covers a late partial render.
+    if (Date.now() - started > 5000) break;
+    await sleep(250);
+  }
+  var available = menuLinks().map(function (a) { return menuPath(a).join(' > '); }).join('; ');
+  throw new Error('tu menú de iPasen no tiene «' + section.label + '». Opciones: ' +
+    (available.length > 400 ? available.slice(0, 400) + '…' : available));
 }
 
 // "8:15 - 9:15" -> 1, "11:15 - 11:45" -> 0.5

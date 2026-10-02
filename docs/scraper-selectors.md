@@ -16,6 +16,12 @@ sección abierta (`openSection` en `common.js`).
 - Hosts visitados: `seneca.juntadeandalucia.es` (sufijo permitido: `juntadeandalucia.es`).
 - Al pulsar "atrás" Séneca puede lanzar un `confirm("¿Está seguro de que desea salir de la aplicación?")`; el WebView sin `WebChromeClient` lo responde como "cancelar".
 
+## Menú (capturado de nuevo el 2026-10-02)
+- Cada opción es `a.nav-link[onclick="Navegacion.llamadaMenu(this)"]` con id `h<número>` (a veces negativo, `h-560752947`), dentro de `li.nav-item`; los submenús son `li.submenu > a` (título) + `ul.collapse`, todo bajo `#menupasen`.
+- **Los ids y las opciones cambian según la cuenta**: a otro alumno le faltaba `#h1448725599`. Los scripts usan el id conocido solo como atajo y, si no está, buscan la opción por su ruta de menú (`openSection` en `common.js`); si tampoco la encuentran, el error lista las opciones del menú de esa cuenta.
+- `Navegacion` puede no existir todavía cuando el menú ya está en el DOM: se espera y, si no aparece, se pulsa la opción.
+- Ruta en la cuenta de referencia: Seguimiento del curso > Faltas de asistencia > Consulta; Tutoría > Horario; Centro > Calendario escolar.
+
 ## Horario
 - Menú: Tutoría > Horario, elemento `#h1448729255`. Título de la página: "HORARIO ESCOLAR DEL ALUMNO".
 - Tabla de horario: primera fila `| Lunes | Martes | Miércoles | Jueves | Viernes`; cada fila empieza con el tramo (`8:15 - 9:15`); cada celda contiene `span.texto-SNC` con líneas separadas por `<br>`: abreviatura del módulo y, debajo, docentes (y a veces una actividad extra, p. ej. "Tutoría con alumnado").

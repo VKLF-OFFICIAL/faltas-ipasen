@@ -2,7 +2,10 @@
 // full names used on the absences page. Slots whose first line is not a subject (e.g. tutor
 // admin time) are skipped.
 run(async function () {
-  await openSection('h1448729255', 'HORARIO ESCOLAR DEL ALUMNO');
+  await openSection({
+    id: 'h1448729255', label: 'Tutoría > Horario',
+    paths: [[/tutor/i, /^horario/i], [/^horario/i]], title: /HORARIO ESCOLAR/i,
+  });
   var tables = await waitFor(function () {
     var all = Array.prototype.slice.call(document.querySelectorAll('table'));
     var grid = all.find(function (t) { return t.rows[0] && /lunes/i.test(t.rows[0].innerText); });

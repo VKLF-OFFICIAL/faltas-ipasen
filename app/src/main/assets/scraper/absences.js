@@ -1,7 +1,10 @@
 // Faltas de asistencia > Consulta, filter "Todas": Fecha | Tramo horario | Ausencia de | Estado.
 // "Retraso" rows are late arrivals, not absences, so they are skipped.
 run(async function () {
-  await openSection('h1448725599', 'FALTAS DE ASISTENCIA DEL ALUMNO');
+  await openSection({
+    id: 'h1448725599', label: 'Faltas de asistencia > Consulta',
+    paths: [[/faltas/i, /^consulta/i], [/^faltas de asistencia$/i], [/faltas/i, /^(consulta|faltas)/i]], title: /FALTAS DE ASISTENCIA/i,
+  });
   var table = await waitFor(function () {
     return Array.prototype.find.call(document.querySelectorAll('table'), function (t) {
       return t.rows[0] && /fecha/i.test(t.rows[0].innerText) && /estado/i.test(t.rows[0].innerText);

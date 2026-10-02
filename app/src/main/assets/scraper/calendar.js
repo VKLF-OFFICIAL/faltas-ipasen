@@ -3,7 +3,10 @@
 // teaching day of each stage with "primerDiaLectivo"; Vocational Training (FP) starts on the latest
 // of those marks in September, so earlier days are non-teaching for this student.
 run(async function () {
-  await openSection('h1448729343', 'CALENDARIO GRÁFICO DE LA LOCALIDAD');
+  await openSection({
+    id: 'h1448729343', label: 'Centro > Calendario escolar',
+    paths: [[/centro/i, /^calendario/i], [/^calendario/i]], title: /CALENDARIO GR[AÁ]FICO/i,
+  });
   var MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
     'septiembre', 'octubre', 'noviembre', 'diciembre'];
   var grids = await waitFor(function () {
