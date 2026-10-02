@@ -8,7 +8,7 @@ run(async function () {
     var grid = all.find(function (t) { return t.rows[0] && /lunes/i.test(t.rows[0].innerText); });
     var subjects = all.find(function (t) { return t.rows[0] && /materias/i.test(t.rows[0].innerText); });
     return grid && subjects ? { grid: grid, subjects: subjects } : null;
-  }, 20000);
+  }, 30000, 'las tablas de horario y materias');
 
   var names = {};
   Array.prototype.forEach.call(tables.subjects.rows, function (row) {

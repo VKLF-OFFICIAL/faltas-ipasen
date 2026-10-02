@@ -107,6 +107,8 @@ private fun SummaryHeader(state: UiState, onSync: () -> Unit) {
     }
     val subtitle = when {
         // Sin esto, pulsar "Sincronizar" sin conexión no daba ninguna señal.
+        // También tras un fallo: la tarea espera su reintento, no solo la conexión.
+        state.pendingSync && state.lastError != null -> "Sincronización pendiente: se reintentará en unos minutos…"
         state.pendingSync -> "Sincronización pendiente: esperando conexión…"
         state.lastSyncMillis != null -> "Actualizado ${relativeTime(state.lastSyncMillis, now)}"
         else -> "Sin sincronizar todavía"

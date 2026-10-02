@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
+import org.json.JSONTokener
 import java.util.UUID
 import kotlin.coroutines.resume
 
@@ -42,7 +43,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             try {
                 withTimeout(TOTAL_TIMEOUT_MS) { session.run(credentials) }
             } catch (e: TimeoutCancellationException) {
-                throw ScrapeException(Reason.TIMEOUT, "la sincronización completa superó el tiempo máximo")
+                throw ScrapeException(Reason.TIMEOUT, "la sincronización superó el tiempo máximo en el paso '${session.currentStep}'")
             } catch (e: ScrapeException) {
                 throw e
             } catch (e: CancellationException) {
@@ -73,6 +74,10 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
         private val pageEvents = Channel<PageEvent>(Channel.UNLIMITED)
         private val results = Channel<Pair<String, String>>(Channel.UNLIMITED)
         private val webView: WebView = createWebView()
+
+        /** Paso en curso, para que el timeout global diga dónde se quedó. */
+        var currentStep = "inicio"
+            private set
 
         @SuppressLint("SetJavaScriptEnabled")
         private fun createWebView(): WebView = WebView(context).apply {
@@ -121,6 +126,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
 
         suspend fun run(credentials: Credentials): ScrapeResult {
             clearCookies()
+            currentStep = "carga del acceso"
             load(IpasenSite.LOGIN_URL)
             drainPageEvents()
             verifyLoginPage()
@@ -176,6 +182,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
         }
 
         private suspend fun runStep(step: String, asset: String, prelude: String = ""): String {
+            currentStep = step
             while (results.tryReceive().isSuccess) Unit
             val script = buildScript(step, asset, prelude)
             webView.evaluateJavascript(script, null)
@@ -184,7 +191,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
             val deadline = SystemClock.elapsedRealtime() + STEP_TIMEOUT_MS
             while (true) {
                 val remaining = deadline - SystemClock.elapsedRealtime()
-                if (remaining <= 0) throw ScrapeException(Reason.TIMEOUT, "el paso '$step' no respondió")
+                if (remaining <= 0) throw ScrapeException(Reason.TIMEOUT, "el paso '$step' no respondió [${describePage()}]")
                 val result = withTimeoutOrNull(minOf(remaining, POLL_MS)) { results.receive() }
                 if (result != null && result.first == step) return result.second
 
@@ -197,6 +204,22 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
                     null -> Unit
                 }
             }
+        }
+
+        /** Resumen de la página actual para el mensaje de error; sin él un timeout no dice dónde se atascó. */
+        private suspend fun describePage(): String {
+            val script = buildString {
+                append("(function(){\nconst STEP='diagnostico';\n")
+                append(readAsset(COMMON_ASSET)).append('\n')
+                append("return describePage();\n})();")
+            }
+            val raw = withTimeoutOrNull(DESCRIBE_TIMEOUT_MS) {
+                suspendCancellableCoroutine { cont ->
+                    webView.evaluateJavascript(script) { if (cont.isActive) cont.resume(it) }
+                }
+            }
+            val text = raw?.let { runCatching { JSONTokener(it).nextValue() as? String }.getOrNull() }
+            return text?.takeIf { it.isNotBlank() } ?: "la página no responde"
         }
 
         private fun buildScript(step: String, asset: String, prelude: String): String = buildString {
@@ -233,11 +256,12 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
         const val LOGIN_CHECK_ASSET = "scraper/login_check.js"
         const val VIEW_WIDTH = 1080
         const val VIEW_HEIGHT = 2340
-        const val PAGE_TIMEOUT_MS = 30_000L
-        const val LOGIN_NAVIGATION_TIMEOUT_MS = 15_000L
-        const val STEP_TIMEOUT_MS = 45_000L
-        const val TOTAL_TIMEOUT_MS = 240_000L
+        const val PAGE_TIMEOUT_MS = 45_000L
+        const val LOGIN_NAVIGATION_TIMEOUT_MS = 30_000L
+        const val STEP_TIMEOUT_MS = 100_000L
+        const val TOTAL_TIMEOUT_MS = 420_000L
         const val POLL_MS = 500L
         const val MAX_REINJECTIONS = 3
+        const val DESCRIBE_TIMEOUT_MS = 3_000L
     }
 }

@@ -6,7 +6,7 @@ run(async function () {
     return Array.prototype.find.call(document.querySelectorAll('table'), function (t) {
       return t.rows[0] && /fecha/i.test(t.rows[0].innerText) && /estado/i.test(t.rows[0].innerText);
     }) || (/registros:\s*0\b/i.test(document.body.innerText) ? 'vacia' : null);
-  }, 20000);
+  }, 30000, 'la tabla de faltas');
   if (table === 'vacia') return [];
 
   var filter = document.getElementById('C_TIPFAL');

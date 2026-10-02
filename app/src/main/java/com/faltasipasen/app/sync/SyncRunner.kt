@@ -116,7 +116,7 @@ class SyncRunner(
                 if (detail.isEmpty()) REJECTED_MESSAGE else "$REJECTED_MESSAGE (Séneca: «$detail»)"
             }
             Reason.NETWORK -> "No se pudo conectar con iPasen (${e.message}). Se volverá a intentar."
-            Reason.TIMEOUT -> "iPasen tardó demasiado en responder. Se volverá a intentar."
+            Reason.TIMEOUT -> "iPasen tardó demasiado en responder (${e.message}). Se volverá a intentar."
             Reason.PARSE_ERROR -> "No se pudieron leer los datos de iPasen (${e.message}). Puede que hayan cambiado la web."
             Reason.INTERNAL -> "Error interno de la app (${e.message}). Se volverá a intentar."
         }

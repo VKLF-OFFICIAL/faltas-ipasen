@@ -10,7 +10,7 @@ run(async function () {
     var tables = document.querySelectorAll('table.ui-datepicker-calendar');
     var titles = document.querySelectorAll('.ui-datepicker-title');
     return tables.length === 12 && titles.length === 12 ? { tables: tables, titles: titles } : null;
-  }, 20000);
+  }, 30000, 'los 12 meses del calendario');
 
   var days = [];
   var septemberStarts = [];

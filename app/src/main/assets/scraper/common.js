@@ -24,7 +24,8 @@ function sleep(ms) {
 
 // Polls predicate() until it returns a truthy value (returned) or the timeout expires.
 // A timeout is flagged so the app treats it as a slow Séneca (retry), not as a changed page.
-function waitFor(predicate, timeoutMs) {
+// The message says what was awaited and which page was showing, so a user can report it.
+function waitFor(predicate, timeoutMs, what) {
   var started = Date.now();
   return new Promise(function (resolve, reject) {
     (function poll() {
@@ -32,13 +33,34 @@ function waitFor(predicate, timeoutMs) {
       try { value = predicate(); } catch (ignored) {}
       if (value) return resolve(value);
       if (Date.now() - started > timeoutMs) {
-        var e = new Error('tiempo de espera agotado en ' + STEP);
+        var e = new Error('tiempo de espera agotado en ' + STEP + (what ? ' esperando ' + what : '') +
+          ' [' + describePage() + ']');
         e.timeout = true;
         return reject(e);
       }
       setTimeout(poll, 250);
     })();
   });
+}
+
+// Short summary of the current page (path, title, headings or visible notices; never form values).
+// The path drops Séneca's one-time tokens.
+function describePage() {
+  function clean(text, max) {
+    text = String(text || '').replace(/\s+/g, ' ').trim();
+    return text.length > max ? text.slice(0, max) + '…' : text;
+  }
+  var parts = [location.pathname.replace(/\/nav\/[^\/]+/, '/nav/…')];
+  if (document.title) parts.push('título «' + clean(document.title, 50) + '»');
+  var headings = Array.prototype.map.call(document.querySelectorAll('h1,h2,h3,h4'), function (h) {
+    return clean(h.innerText, 50);
+  }).filter(Boolean).slice(0, 3);
+  if (headings.length) parts.push('cabeceras «' + headings.join(' | ') + '»');
+  var notice = document.querySelector('.alert, .ui-dialog, #loginMessage.show, .mensaje, .error');
+  if (notice && clean(notice.innerText, 1)) parts.push('aviso «' + clean(notice.innerText, 80) + '»');
+  if (document.getElementById('USUARIO')) parts.push('formulario de acceso visible');
+  if (!headings.length && !notice) parts.push('texto «' + clean(document.body && document.body.innerText, 80) + '»');
+  return parts.join('; ');
 }
 
 // Sets an input value so Angular/React/Vue bindings notice it.
@@ -62,11 +84,11 @@ async function openSection(menuId, title) {
   if (onPage(title)) return;
   var key = '__faltas_menu_' + menuId;
   if (Date.now() - Number(sessionStorage.getItem(key) || 0) > 20000) {
-    var item = await waitFor(function () { return document.getElementById(menuId); }, 20000);
+    var item = await waitFor(function () { return document.getElementById(menuId); }, 30000, 'la opción de menú ' + menuId);
     sessionStorage.setItem(key, String(Date.now()));
     Navegacion.llamadaMenu(item);
   }
-  await waitFor(function () { return onPage(title); }, 30000);
+  await waitFor(function () { return onPage(title); }, 45000, 'la página ' + title);
 }
 
 // "8:15 - 9:15" -> 1, "11:15 - 11:45" -> 0.5

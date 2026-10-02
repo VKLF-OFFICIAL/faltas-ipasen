@@ -8,7 +8,7 @@ run(async function () {
       return 'error:' + message.innerText.trim().replace(/\s+/g, ' ');
     }
     return null;
-  }, 25000);
+  }, 40000, 'el resultado del acceso');
   if (outcome !== 'ok') {
     var e = new Error(outcome.slice('error:'.length));
     e.loginFailed = true;
