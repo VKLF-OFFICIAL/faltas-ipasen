@@ -30,6 +30,7 @@ private data class AbsenceDto(
     val hours: Double = 1.0,
     val justified: Boolean = false,
     val tramo: String = "",
+    val fullDay: Boolean = false,
 )
 
 object ScrapeParsers {
@@ -49,16 +50,23 @@ object ScrapeParsers {
     fun parseCalendar(raw: String): List<CalendarDay> =
         decode<List<DayDto>>(raw, STEP_CALENDAR).map { CalendarDay(date(it.date, STEP_CALENDAR), it.lectivo) }
 
-    fun parseAbsences(raw: String): List<Absence> =
-        decode<List<AbsenceDto>>(raw, STEP_ABSENCES).map {
-            Absence(
+    // A "Día completo" row names no subject: it is an absence from every class of that weekday.
+    fun parseAbsences(raw: String, schedule: List<ScheduleSlot> = emptyList()): List<Absence> =
+        decode<List<AbsenceDto>>(raw, STEP_ABSENCES).flatMap {
+            if (it.fullDay) {
+                val date = date(it.date, STEP_ABSENCES)
+                return@flatMap schedule.filter { slot -> slot.dayOfWeek == date.dayOfWeek.value }.map { slot ->
+                    Absence(date, slot.subject, slot.hours, it.justified, it.tramo.trim(), slot.name)
+                }
+            }
+            listOf(Absence(
                 date = date(it.date, STEP_ABSENCES),
                 subject = subject(it.subject, STEP_ABSENCES),
                 hours = hours(it.hours, STEP_ABSENCES),
                 justified = it.justified,
                 tramo = it.tramo.trim(),
                 name = displayName(it.subject),
-            )
+            ))
         }
 
     fun displayName(name: String): String = name.trim().replace(whitespace, " ")

@@ -31,6 +31,18 @@ run(async function () {
     rowsRead++;
     var state = row.cells[col.state].innerText.trim().toLowerCase();
     if (state.indexOf('retraso') >= 0) return;
+    var tramo = row.cells[col.tramo].innerText.trim();
+    // "Día completo" rows have no subject; the app spreads them over that day's timetable.
+    if (/^d[ií]a completo$/i.test(tramo)) {
+      absences.push({
+        date: toIsoDate(row.cells[col.date].innerText),
+        subject: '',
+        fullDay: true,
+        justified: state.indexOf('justificada') === 0,
+        tramo: tramo,
+      });
+      return;
+    }
     absences.push({
       date: toIsoDate(row.cells[col.date].innerText),
       subject: row.cells[col.subject].innerText.trim(),

@@ -74,6 +74,24 @@ class ScrapeParsersTest {
     }
 
     @Test
+    fun `a full day absence counts every class of that weekday`() {
+        val schedule = listOf(
+            ScheduleSlot("REDES", 2, 1.0, "SRI", "Redes"),
+            ScheduleSlot("BD", 2, 2.0, "BD", "Bases de datos"),
+            ScheduleSlot("SO", 3, 1.0, "SO", "Sistemas"),
+        )
+        // 2026-10-13 is a Tuesday (dayOfWeek 2).
+        val raw = """{"ok":true,"data":[{"date":"2026-10-13","subject":"","fullDay":true,"justified":true,"tramo":"Día completo"}]}"""
+        assertEquals(
+            listOf(
+                Absence(LocalDate.of(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
+                Absence(LocalDate.of(2026, 10, 13), "BD", 2.0, true, tramo = "Día completo", name = "Bases de datos"),
+            ),
+            ScrapeParsers.parseAbsences(raw, schedule),
+        )
+    }
+
+    @Test
     fun `script failure is a parse error with the script message`() {
         val raw = """{"ok":false,"error":"tabla no encontrada"}"""
         val e = assertThrows(ScrapeException::class.java) { ScrapeParsers.parseAbsences(raw) }

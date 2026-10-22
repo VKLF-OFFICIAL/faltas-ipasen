@@ -136,7 +136,7 @@ class WebViewScraper(private val context: Context) : IpasenScraper {
 
             val schedule = ScrapeParsers.parseSchedule(runDataStep(IpasenSite.SCHEDULE))
             val calendar = ScrapeParsers.parseCalendar(runDataStep(IpasenSite.CALENDAR))
-            val absences = ScrapeParsers.parseAbsences(runDataStep(IpasenSite.ABSENCES))
+            val absences = ScrapeParsers.parseAbsences(runDataStep(IpasenSite.ABSENCES), schedule)
             return ScrapeResult(schedule, calendar, absences)
         }
 
