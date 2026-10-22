@@ -9,6 +9,8 @@ data class ScrapeResult(
     val schedule: List<ScheduleSlot>,
     val calendar: List<CalendarDay>,
     val absences: List<Absence>,
+    /** Absence rows that could not be read; the sync goes on without them. */
+    val skippedAbsences: List<String> = emptyList(),
 )
 
 interface IpasenScraper {

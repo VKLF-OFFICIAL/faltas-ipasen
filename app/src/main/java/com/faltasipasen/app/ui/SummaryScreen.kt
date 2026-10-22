@@ -79,6 +79,7 @@ fun SummaryScreen(state: UiState, onSync: () -> Unit, onOpenSubject: (String) ->
             item { SummaryHeader(state, onSync) }
             if (!notificationsEnabled) item { NotificationsOffNote() }
             state.lastError?.let { error -> item { ErrorNote(error) } }
+            if (state.skippedAbsences.isNotEmpty()) item { SkippedAbsencesNote(state.skippedAbsences) }
             val stats = state.stats
             if (stats == null) {
                 item { EmptySummary(state.syncing, onSync) }
@@ -319,6 +320,20 @@ fun ErrorNote(message: String) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.10f)).padding(14.dp),
     ) {
         Text(message, style = MaterialTheme.typography.bodySmall, color = color)
+    }
+}
+
+/** Faltas que iPasen muestra pero la app no ha sabido leer: no cuentan en los porcentajes. */
+@Composable
+private fun SkippedAbsencesNote(rows: List<String>) {
+    val color = LocalRiskColors.current.medium
+    val title = if (rows.size == 1) "1 falta no se ha podido leer" else "${rows.size} faltas no se han podido leer"
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.10f)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text("$title y no cuentan en los porcentajes:", style = MaterialTheme.typography.bodySmall, color = color)
+        rows.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall, color = color) }
     }
 }
 

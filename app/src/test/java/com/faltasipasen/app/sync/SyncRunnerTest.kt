@@ -65,6 +65,14 @@ class SyncRunnerTest {
     private fun loggedIn() = settings.saveCredentials(Credentials("alumno", "clave"))
 
     @Test
+    fun `absence rows set aside by the scraper are kept with the snapshot`() = runTest {
+        loggedIn()
+        scraper.outcome = { result.copy(skippedAbsences = listOf("05/10/2026 | Excursión")) }
+        assertTrue(runner.run() is SyncOutcome.Success)
+        assertEquals(listOf("05/10/2026 | Excursión"), snapshots.state.value!!.skippedAbsences)
+    }
+
+    @Test
     fun `without credentials nothing is scraped`() = runTest {
         assertSame(SyncOutcome.MissingCredentials, runner.run())
         assertEquals(0, scraper.calls)

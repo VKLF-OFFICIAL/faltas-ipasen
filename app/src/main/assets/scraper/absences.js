@@ -1,5 +1,7 @@
 // Faltas de asistencia > Consulta, filter "Todas": Fecha | Tramo horario | Ausencia de | Estado.
 // "Retraso" rows are late arrivals, not absences, so they are skipped.
+// A row in an unknown format is set aside in `skipped` (shown to the user) instead of failing the
+// sync; only a changed table (columns, filter, row count) fails it, because then every figure is wrong.
 run(async function () {
   await openSection({
     id: 'h1448725599', label: 'Faltas de asistencia > Consulta',
@@ -10,7 +12,7 @@ run(async function () {
       return t.rows[0] && /fecha/i.test(t.rows[0].innerText) && /estado/i.test(t.rows[0].innerText);
     }) || (/registros:\s*0\b/i.test(document.body.innerText) ? 'vacia' : null);
   }, 30000, 'la tabla de faltas');
-  if (table === 'vacia') return [];
+  if (table === 'vacia') return { absences: [], skipped: [] };
 
   var filter = document.getElementById('C_TIPFAL');
   if (filter && filter.value !== 'T') throw new Error('el filtro de faltas no está en "Todas"');
@@ -26,34 +28,40 @@ run(async function () {
 
   var rowsRead = 0;
   var absences = [];
+  var skipped = [];
   Array.prototype.slice.call(table.rows, 1).forEach(function (row) {
     if (row.cells.length < header.length) return;
     rowsRead++;
-    var state = row.cells[col.state].innerText.trim().toLowerCase();
+    var text = function (column) { return row.cells[column].innerText.replace(/\s+/g, ' ').trim(); };
+    var state = text(col.state).toLowerCase();
     if (state.indexOf('retraso') >= 0) return;
-    var tramo = row.cells[col.tramo].innerText.trim();
-    // "Día completo" rows have no subject; the app spreads them over that day's timetable.
-    if (/^d[ií]a completo$/i.test(tramo)) {
+    var tramo = text(col.tramo);
+    try {
+      // "Día completo" rows have no subject; the app spreads them over that day's timetable.
+      if (/^d[ií]a completo$/i.test(tramo)) {
+        absences.push({
+          date: toIsoDate(text(col.date)),
+          subject: '',
+          fullDay: true,
+          justified: state.indexOf('justificada') === 0,
+          tramo: tramo,
+        });
+        return;
+      }
       absences.push({
-        date: toIsoDate(row.cells[col.date].innerText),
-        subject: '',
-        fullDay: true,
+        date: toIsoDate(text(col.date)),
+        subject: text(col.subject),
+        hours: tramoHours(tramo),
         justified: state.indexOf('justificada') === 0,
         tramo: tramo,
       });
-      return;
+    } catch (e) {
+      skipped.push([text(col.date), tramo, text(col.subject), text(col.state)].join(' | ') + ': ' + (e && e.message ? e.message : e));
     }
-    absences.push({
-      date: toIsoDate(row.cells[col.date].innerText),
-      subject: row.cells[col.subject].innerText.trim(),
-      hours: tramoHours(row.cells[col.tramo].innerText),
-      justified: state.indexOf('justificada') === 0,
-      tramo: row.cells[col.tramo].innerText.trim(),
-    });
   });
   var total = /registros:\s*(\d+)/i.exec(document.body.innerText);
   if (total && Number(total[1]) !== rowsRead) {
     throw new Error('la tabla de faltas muestra ' + rowsRead + ' de ' + total[1] + ' registros (¿está paginada?)');
   }
-  return absences;
+  return { absences: absences, skipped: skipped };
 });

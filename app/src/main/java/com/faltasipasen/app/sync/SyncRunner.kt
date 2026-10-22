@@ -58,7 +58,7 @@ class SyncRunner(
             // Se cerró sesión o se cambiaron las credenciales mientras se descargaba: los datos ya no valen.
             if (settings.credentials() != credentials) return@withLock SyncOutcome.Superseded
 
-            val snapshot = Snapshot(result.schedule, result.calendar, result.absences, nowMillis())
+            val snapshot = Snapshot(result.schedule, result.calendar, result.absences, nowMillis(), result.skippedAbsences)
             snapshots.save(snapshot)
 
             val stats = AbsenceCalculator.calculate(

@@ -63,13 +63,13 @@ class ScrapeParsersTest {
 
     @Test
     fun `parses absences with defaults`() {
-        val raw = """{"ok":true,"data":[{"date":"2026-10-02","subject":"bd"},{"date":"2026-10-03","subject":"Redes","hours":2,"justified":true,"tramo":" 8:15 - 9:15 "}]}"""
+        val raw = """{"ok":true,"data":{"absences":[{"date":"2026-10-02","subject":"bd"},{"date":"2026-10-03","subject":"Redes","hours":2,"justified":true,"tramo":" 8:15 - 9:15 "}]}}"""
         assertEquals(
             listOf(
                 Absence(LocalDate.of(2026, 10, 2), "BD", 1.0, false, name = "bd"),
                 Absence(LocalDate.of(2026, 10, 3), "REDES", 2.0, true, tramo = "8:15 - 9:15", name = "Redes"),
             ),
-            ScrapeParsers.parseAbsences(raw),
+            ScrapeParsers.parseAbsences(raw).absences,
         )
     }
 
@@ -81,14 +81,45 @@ class ScrapeParsersTest {
             ScheduleSlot("SO", 3, 1.0, "SO", "Sistemas"),
         )
         // 2026-10-13 is a Tuesday (dayOfWeek 2).
-        val raw = """{"ok":true,"data":[{"date":"2026-10-13","subject":"","fullDay":true,"justified":true,"tramo":"Día completo"}]}"""
+        val raw = """{"ok":true,"data":{"absences":[{"date":"2026-10-13","subject":"","fullDay":true,"justified":true,"tramo":"Día completo"}]}}"""
         assertEquals(
             listOf(
                 Absence(LocalDate.of(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
                 Absence(LocalDate.of(2026, 10, 13), "BD", 2.0, true, tramo = "Día completo", name = "Bases de datos"),
             ),
-            ScrapeParsers.parseAbsences(raw, schedule),
+            ScrapeParsers.parseAbsences(raw, schedule).absences,
         )
+    }
+
+    @Test
+    fun `a full day replaces that day's hourly rows so nothing counts twice`() {
+        val schedule = listOf(ScheduleSlot("REDES", 2, 1.0, "SRI", "Redes"))
+        val raw = """{"ok":true,"data":{"absences":[
+            {"date":"2026-10-13","subject":"Redes","hours":1,"tramo":"8:15 - 9:15"},
+            {"date":"2026-10-13","subject":"","fullDay":true,"justified":true,"tramo":"Día completo"},
+            {"date":"2026-10-14","subject":"Redes","hours":1,"tramo":"8:15 - 9:15"}]}}"""
+        assertEquals(
+            listOf(
+                Absence(LocalDate.of(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
+                Absence(LocalDate.of(2026, 10, 14), "REDES", 1.0, false, tramo = "8:15 - 9:15", name = "Redes"),
+            ),
+            ScrapeParsers.parseAbsences(raw, schedule).absences,
+        )
+    }
+
+    @Test
+    fun `unreadable absence rows are set aside and the rest are kept`() {
+        val raw = """{"ok":true,"data":{"absences":[
+            {"date":"2026-10-02","subject":"Redes"},
+            {"date":"2026-10-03","subject":"  "},
+            {"date":"ayer","subject":"BD"},
+            {"date":"2026-10-04","subject":"BD","hours":40}],
+            "skipped":["05/10/2026 | Excursión | | Justificada: tramo horario no reconocido: Excursión"]}}"""
+        val read = ScrapeParsers.parseAbsences(raw)
+        assertEquals(listOf(Absence(LocalDate.of(2026, 10, 2), "REDES", 1.0, false, name = "Redes")), read.absences)
+        assertEquals(4, read.skipped.size)
+        assertTrue(read.skipped.first().contains("Excursión"))
+        assertTrue(read.skipped.any { it.contains("ayer") })
     }
 
     @Test

@@ -33,6 +33,12 @@ private data class AbsenceDto(
     val fullDay: Boolean = false,
 )
 
+@Serializable
+private data class AbsencesDto(val absences: List<AbsenceDto>, val skipped: List<String> = emptyList())
+
+/** Absences read from iPasen, plus a description of each row that could not be read. */
+data class AbsenceRead(val absences: List<Absence>, val skipped: List<String>)
+
 object ScrapeParsers {
     private val json = Json { ignoreUnknownKeys = true }
     private val whitespace = Regex("\\s+")
@@ -50,24 +56,53 @@ object ScrapeParsers {
     fun parseCalendar(raw: String): List<CalendarDay> =
         decode<List<DayDto>>(raw, STEP_CALENDAR).map { CalendarDay(date(it.date, STEP_CALENDAR), it.lectivo) }
 
-    // A "Día completo" row names no subject: it is an absence from every class of that weekday.
-    fun parseAbsences(raw: String, schedule: List<ScheduleSlot> = emptyList()): List<Absence> =
-        decode<List<AbsenceDto>>(raw, STEP_ABSENCES).flatMap {
-            if (it.fullDay) {
-                val date = date(it.date, STEP_ABSENCES)
-                return@flatMap schedule.filter { slot -> slot.dayOfWeek == date.dayOfWeek.value }.map { slot ->
-                    Absence(date, slot.subject, slot.hours, it.justified, it.tramo.trim(), slot.name)
+    /**
+     * One unreadable row must not cost the whole sync: it is set aside in [AbsenceRead.skipped] (as the
+     * scraper does for rows it cannot read) and the rest are kept.
+     * A "Día completo" row names no subject: it is an absence from every class of that weekday, and it
+     * replaces any hourly rows of the same date so nothing counts twice.
+     */
+    fun parseAbsences(raw: String, schedule: List<ScheduleSlot> = emptyList()): AbsenceRead {
+        val dto = decode<AbsencesDto>(raw, STEP_ABSENCES)
+        val skipped = dto.skipped.toMutableList()
+        val rows = dto.absences.mapNotNull { row ->
+            try {
+                row to date(row.date, STEP_ABSENCES)
+            } catch (e: ScrapeException) {
+                skipped += describe(row, e)
+                null
+            }
+        }
+        val fullDays = rows.filter { it.first.fullDay }.map { it.second }.toSet()
+        val absences = rows.flatMap { (row, date) ->
+            if (row.fullDay) {
+                return@flatMap schedule.filter { it.dayOfWeek == date.dayOfWeek.value }.map { slot ->
+                    Absence(date, slot.subject, slot.hours, row.justified, row.tramo.trim(), slot.name)
                 }
             }
-            listOf(Absence(
-                date = date(it.date, STEP_ABSENCES),
-                subject = subject(it.subject, STEP_ABSENCES),
-                hours = hours(it.hours, STEP_ABSENCES),
-                justified = it.justified,
-                tramo = it.tramo.trim(),
-                name = displayName(it.subject),
-            ))
+            if (date in fullDays) return@flatMap emptyList()
+            try {
+                listOf(
+                    Absence(
+                        date = date,
+                        subject = subject(row.subject, STEP_ABSENCES),
+                        hours = hours(row.hours, STEP_ABSENCES),
+                        justified = row.justified,
+                        tramo = row.tramo.trim(),
+                        name = displayName(row.subject),
+                    ),
+                )
+            } catch (e: ScrapeException) {
+                skipped += describe(row, e)
+                emptyList()
+            }
         }
+        return AbsenceRead(absences, skipped)
+    }
+
+    private fun describe(row: AbsenceDto, e: ScrapeException): String =
+        listOf(row.date, row.tramo, row.subject).joinToString(" | ") { displayName(it) } +
+            ": " + e.message.orEmpty().removePrefix("$STEP_ABSENCES: ")
 
     fun displayName(name: String): String = name.trim().replace(whitespace, " ")
 

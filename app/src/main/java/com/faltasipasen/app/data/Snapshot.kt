@@ -16,6 +16,7 @@ data class Snapshot(
     val calendar: List<CalendarDay>,
     val absences: List<Absence>,
     val syncedAtMillis: Long,
+    val skippedAbsences: List<String> = emptyList(),
 )
 
 interface SnapshotStore {
