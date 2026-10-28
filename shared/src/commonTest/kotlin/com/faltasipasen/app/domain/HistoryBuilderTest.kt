@@ -1,23 +1,24 @@
 package com.faltasipasen.app.domain
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
-import java.time.LocalDate
+import kotlin.test.assertEquals
+import kotlin.test.Test
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 
 class HistoryBuilderTest {
-    private val cutoff = LocalDate.of(2027, 2, 15)
-    private val today = LocalDate.of(2026, 10, 1)
+    private val cutoff = LocalDate(2027, 2, 15)
+    private val today = LocalDate(2026, 10, 1)
     private val schedule = listOf(
         ScheduleSlot("ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1, 1.0, "ASO", "Administración de sistemas operativos"),
         ScheduleSlot("SERVICIOS DE RED E INTERNET", 2, 1.0, "SRI", "Servicios de red e Internet"),
     )
     private val absences = listOf(
-        Absence(LocalDate.of(2026, 9, 24), "SERVICIOS DE RED E INTERNET", 1.0, true, "9:15 - 10:15", "Servicios de red e Internet"),
-        Absence(LocalDate.of(2026, 9, 24), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "8:15 - 9:15", "Administración de sistemas operativos"),
-        Absence(LocalDate.of(2026, 9, 29), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "11:45 - 12:45", ""),
-        Absence(LocalDate.of(2026, 10, 5), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "8:15 - 9:15", ""), // después de hoy
-        Absence(LocalDate.of(2026, 8, 31), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "8:15 - 9:15", ""), // antes del curso
-        Absence(LocalDate.of(2026, 9, 25), "TUTORÍA", 1.0, false, "", "Tutoría"),
+        Absence(LocalDate(2026, 9, 24), "SERVICIOS DE RED E INTERNET", 1.0, true, "9:15 - 10:15", "Servicios de red e Internet"),
+        Absence(LocalDate(2026, 9, 24), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "8:15 - 9:15", "Administración de sistemas operativos"),
+        Absence(LocalDate(2026, 9, 29), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "11:45 - 12:45", ""),
+        Absence(LocalDate(2026, 10, 5), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "8:15 - 9:15", ""), // después de hoy
+        Absence(LocalDate(2026, 8, 31), "ADMINISTRACIÓN DE SISTEMAS OPERATIVOS", 1.0, false, "8:15 - 9:15", ""), // antes del curso
+        Absence(LocalDate(2026, 9, 25), "TUTORÍA", 1.0, false, "", "Tutoría"),
     )
 
     private val days = HistoryBuilder.build(schedule, absences, cutoff, today)
@@ -25,7 +26,7 @@ class HistoryBuilderTest {
     @Test
     fun `days are newest first and only inside the counted period`() {
         assertEquals(
-            listOf(LocalDate.of(2026, 9, 29), LocalDate.of(2026, 9, 25), LocalDate.of(2026, 9, 24)),
+            listOf(LocalDate(2026, 9, 29), LocalDate(2026, 9, 25), LocalDate(2026, 9, 24)),
             days.map { it.date },
         )
     }
@@ -48,7 +49,7 @@ class HistoryBuilderTest {
     @Test
     fun `filter keeps only one subject and drops empty days`() {
         val filtered = HistoryBuilder.filter(days, "SERVICIOS DE RED E INTERNET")
-        assertEquals(listOf(LocalDate.of(2026, 9, 24)), filtered.map { it.date })
+        assertEquals(listOf(LocalDate(2026, 9, 24)), filtered.map { it.date })
         assertEquals(1, filtered.single().entries.size)
         assertEquals(days, HistoryBuilder.filter(days, null))
     }
@@ -67,9 +68,9 @@ class HistoryBuilderTest {
 
     @Test
     fun `two absences of the same subject on the same day with no tramo are both kept`() {
-        val duplicateDay = LocalDate.of(2026, 9, 24)
+        val duplicateDay = LocalDate(2026, 9, 24)
         val duplicateSchedule = listOf(
-            ScheduleSlot("SERVICIOS DE RED E INTERNET", duplicateDay.dayOfWeek.value, 1.0, "SRI", "Servicios de red e Internet"),
+            ScheduleSlot("SERVICIOS DE RED E INTERNET", duplicateDay.dayOfWeek.isoDayNumber, 1.0, "SRI", "Servicios de red e Internet"),
         )
         val duplicateAbsences = listOf(
             Absence(duplicateDay, "SERVICIOS DE RED E INTERNET", 1.0, false, "", ""),

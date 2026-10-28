@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 data class UiState(
     val hasCredentials: Boolean,

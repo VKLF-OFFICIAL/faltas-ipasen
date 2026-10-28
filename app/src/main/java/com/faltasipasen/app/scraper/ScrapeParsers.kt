@@ -13,8 +13,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
-import java.time.LocalDate
-import java.time.format.DateTimeParseException
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 import java.util.Locale
 
 @Serializable
@@ -76,7 +76,7 @@ object ScrapeParsers {
         val fullDays = rows.filter { it.first.fullDay }.map { it.second }.toSet()
         val absences = rows.flatMap { (row, date) ->
             if (row.fullDay) {
-                return@flatMap schedule.filter { it.dayOfWeek == date.dayOfWeek.value }.map { slot ->
+                return@flatMap schedule.filter { it.dayOfWeek == date.dayOfWeek.isoDayNumber }.map { slot ->
                     Absence(date, slot.subject, slot.hours, row.justified, row.tramo.trim(), slot.name)
                 }
             }
@@ -148,7 +148,7 @@ object ScrapeParsers {
     private fun date(value: String, step: String): LocalDate =
         try {
             LocalDate.parse(value)
-        } catch (e: DateTimeParseException) {
+        } catch (e: IllegalArgumentException) {
             invalid(step, "fecha no válida: $value")
         }
 

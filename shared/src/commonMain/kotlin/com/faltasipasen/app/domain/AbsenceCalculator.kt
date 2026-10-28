@@ -1,6 +1,7 @@
 package com.faltasipasen.app.domain
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 
 object AbsenceCalculator {
     const val GLOBAL_LABEL = "Total"
@@ -16,16 +17,16 @@ object AbsenceCalculator {
         val countedUntil = minOf(today, cutoff)
 
         val courseDays = calendar
-            .filter { it.lectivo && !it.date.isBefore(courseStart) && !it.date.isAfter(cutoff) }
+            .filter { it.lectivo && it.date >= courseStart && it.date <= cutoff }
             .map { it.date }
             .distinct()
-        val counted = absences.filter { !it.date.isBefore(courseStart) && !it.date.isAfter(countedUntil) }
+        val counted = absences.filter { it.date >= courseStart && it.date <= countedUntil }
 
         val labels = (schedule.map { it.subject } + counted.map { it.subject }).distinct()
         val subjects = labels.map { subject ->
             val slots = schedule.filter { it.subject == subject }
             val courseHours = courseDays.sumOf { day ->
-                slots.filter { it.dayOfWeek == day.dayOfWeek.value }.sumOf { it.hours }
+                slots.filter { it.dayOfWeek == day.dayOfWeek.isoDayNumber }.sumOf { it.hours }
             }
             val own = counted.filter { it.subject == subject }
             HoursStats(
@@ -51,7 +52,7 @@ object AbsenceCalculator {
             courseStart = courseStart,
             cutoff = cutoff,
             countedUntil = countedUntil,
-            lectivoDaysElapsed = courseDays.count { !it.isAfter(countedUntil) },
+            lectivoDaysElapsed = courseDays.count { it <= countedUntil },
             lectivoDaysTotal = courseDays.size,
         )
     }

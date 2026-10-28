@@ -10,14 +10,15 @@ import com.faltasipasen.app.notify.NotificationAlertSink
 import com.faltasipasen.app.scraper.WebViewScraper
 import com.faltasipasen.app.sync.SyncRunner
 import java.io.File
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toKotlinLocalDate
 import java.time.ZoneId
 
 class AppGraph(context: Context) {
     private val app = context.applicationContext
     private val zone: ZoneId = ZoneId.of("Europe/Madrid")
 
-    val today: () -> LocalDate = { LocalDate.now(zone) }
+    val today: () -> LocalDate = { java.time.LocalDate.now(zone).toKotlinLocalDate() }
 
     val settings: SettingsStore = PrefsSettingsStore(
         app.getSharedPreferences("ajustes", Context.MODE_PRIVATE),

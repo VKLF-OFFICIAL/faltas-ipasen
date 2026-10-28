@@ -7,7 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 class ScrapeParsersTest {
     private fun reasonOf(block: () -> Unit): ScrapeException.Reason =
@@ -50,7 +50,7 @@ class ScrapeParsersTest {
     fun `parses calendar days`() {
         val raw = """{"ok":true,"data":[{"date":"2026-09-15","lectivo":true},{"date":"2026-12-24","lectivo":false}]}"""
         assertEquals(
-            listOf(CalendarDay(LocalDate.of(2026, 9, 15), true), CalendarDay(LocalDate.of(2026, 12, 24), false)),
+            listOf(CalendarDay(LocalDate(2026, 9, 15), true), CalendarDay(LocalDate(2026, 12, 24), false)),
             ScrapeParsers.parseCalendar(raw),
         )
     }
@@ -66,8 +66,8 @@ class ScrapeParsersTest {
         val raw = """{"ok":true,"data":{"absences":[{"date":"2026-10-02","subject":"bd"},{"date":"2026-10-03","subject":"Redes","hours":2,"justified":true,"tramo":" 8:15 - 9:15 "}]}}"""
         assertEquals(
             listOf(
-                Absence(LocalDate.of(2026, 10, 2), "BD", 1.0, false, name = "bd"),
-                Absence(LocalDate.of(2026, 10, 3), "REDES", 2.0, true, tramo = "8:15 - 9:15", name = "Redes"),
+                Absence(LocalDate(2026, 10, 2), "BD", 1.0, false, name = "bd"),
+                Absence(LocalDate(2026, 10, 3), "REDES", 2.0, true, tramo = "8:15 - 9:15", name = "Redes"),
             ),
             ScrapeParsers.parseAbsences(raw).absences,
         )
@@ -84,8 +84,8 @@ class ScrapeParsersTest {
         val raw = """{"ok":true,"data":{"absences":[{"date":"2026-10-13","subject":"","fullDay":true,"justified":true,"tramo":"Día completo"}]}}"""
         assertEquals(
             listOf(
-                Absence(LocalDate.of(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
-                Absence(LocalDate.of(2026, 10, 13), "BD", 2.0, true, tramo = "Día completo", name = "Bases de datos"),
+                Absence(LocalDate(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
+                Absence(LocalDate(2026, 10, 13), "BD", 2.0, true, tramo = "Día completo", name = "Bases de datos"),
             ),
             ScrapeParsers.parseAbsences(raw, schedule).absences,
         )
@@ -100,8 +100,8 @@ class ScrapeParsersTest {
             {"date":"2026-10-14","subject":"Redes","hours":1,"tramo":"8:15 - 9:15"}]}}"""
         assertEquals(
             listOf(
-                Absence(LocalDate.of(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
-                Absence(LocalDate.of(2026, 10, 14), "REDES", 1.0, false, tramo = "8:15 - 9:15", name = "Redes"),
+                Absence(LocalDate(2026, 10, 13), "REDES", 1.0, true, tramo = "Día completo", name = "Redes"),
+                Absence(LocalDate(2026, 10, 14), "REDES", 1.0, false, tramo = "8:15 - 9:15", name = "Redes"),
             ),
             ScrapeParsers.parseAbsences(raw, schedule).absences,
         )
@@ -116,7 +116,7 @@ class ScrapeParsersTest {
             {"date":"2026-10-04","subject":"BD","hours":40}],
             "skipped":["05/10/2026 | Excursión | | Justificada: tramo horario no reconocido: Excursión"]}}"""
         val read = ScrapeParsers.parseAbsences(raw)
-        assertEquals(listOf(Absence(LocalDate.of(2026, 10, 2), "REDES", 1.0, false, name = "Redes")), read.absences)
+        assertEquals(listOf(Absence(LocalDate(2026, 10, 2), "REDES", 1.0, false, name = "Redes")), read.absences)
         assertEquals(4, read.skipped.size)
         assertTrue(read.skipped.first().contains("Excursión"))
         assertTrue(read.skipped.any { it.contains("ayer") })

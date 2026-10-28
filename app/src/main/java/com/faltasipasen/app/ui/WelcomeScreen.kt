@@ -41,7 +41,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.faltasipasen.app.domain.EducationLevel
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun WelcomeScreen(

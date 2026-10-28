@@ -2,7 +2,7 @@ package com.faltasipasen.app.ui
 
 import com.faltasipasen.app.domain.CourseDates
 import com.faltasipasen.app.domain.EducationLevel
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -26,24 +26,24 @@ class InputValidationTest {
         assertNull(InputValidation.parseThreshold(""))
     }
 
-    private val suggested: (EducationLevel) -> LocalDate = { CourseDates.defaultCutoff(LocalDate.of(2026, 10, 1), it) }
+    private val suggested: (EducationLevel) -> LocalDate = { CourseDates.defaultCutoff(LocalDate(2026, 10, 1), it) }
 
     @Test
     fun `untouched suggestions follow the new level`() {
         val (threshold, cutoff) = InputValidation.followLevelDefaults(
-            EducationLevel.FP_SUPERIOR, EducationLevel.ESO, "15", LocalDate.of(2027, 2, 15), suggested,
+            EducationLevel.FP_SUPERIOR, EducationLevel.ESO, "15", LocalDate(2027, 2, 15), suggested,
         )
         assertEquals("20", threshold)
-        assertEquals(LocalDate.of(2027, 6, 22), cutoff)
+        assertEquals(LocalDate(2027, 6, 22), cutoff)
     }
 
     @Test
     fun `values the user changed are kept when the level changes`() {
         val (threshold, cutoff) = InputValidation.followLevelDefaults(
-            EducationLevel.FP_SUPERIOR, EducationLevel.ESO, "12,5", LocalDate.of(2027, 3, 1), suggested,
+            EducationLevel.FP_SUPERIOR, EducationLevel.ESO, "12,5", LocalDate(2027, 3, 1), suggested,
         )
         assertEquals("12,5", threshold)
-        assertEquals(LocalDate.of(2027, 3, 1), cutoff)
+        assertEquals(LocalDate(2027, 3, 1), cutoff)
     }
 
     @Test

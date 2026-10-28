@@ -3,7 +3,8 @@ package com.faltasipasen.app.ui
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.Instant
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -19,11 +20,11 @@ fun formatNumber(value: Double): String = DecimalFormat("0.#", DecimalFormatSymb
 
 fun formatHours(value: Double): String = "${formatNumber(value)} h"
 
-fun formatLongDate(date: LocalDate): String = date.format(longDate)
+fun formatLongDate(date: LocalDate): String = date.toJavaLocalDate().format(longDate)
 
 fun formatMillis(millis: Long): String = Instant.ofEpochMilli(millis).atZone(madrid).format(dateTime)
 
-fun formatDayHeader(date: LocalDate): String = date.format(dayHeader).replaceFirstChar { it.titlecase(spanish) }
+fun formatDayHeader(date: LocalDate): String = date.toJavaLocalDate().format(dayHeader).replaceFirstChar { it.titlecase(spanish) }
 
 fun formatTramo(tramo: String): String = tramo.trim().replace(dash, " – ")
 

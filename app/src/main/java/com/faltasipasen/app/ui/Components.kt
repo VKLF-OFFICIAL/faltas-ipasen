@@ -36,7 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.Instant
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toKotlinLocalDate
 import java.time.ZoneOffset
 
 @Composable
@@ -116,14 +118,14 @@ fun CutoffDateField(
     }
     if (open) {
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = value.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            initialSelectedDateMillis = value.toJavaLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
         )
         DatePickerDialog(
             onDismissRequest = { open = false },
             confirmButton = {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let {
-                        onChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
+                        onChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toKotlinLocalDate())
                     }
                     open = false
                 }) { Text("Aceptar") }

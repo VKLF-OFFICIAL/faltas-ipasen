@@ -1,7 +1,7 @@
 package com.faltasipasen.app.domain
 
 import kotlinx.serialization.Serializable
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Una sesión semanal del horario. dayOfWeek: 1 = lunes … 7 = domingo.
@@ -18,13 +18,13 @@ data class ScheduleSlot(
 
 @Serializable
 data class CalendarDay(
-    @Serializable(with = LocalDateSerializer::class) val date: LocalDate,
+    val date: LocalDate,
     val lectivo: Boolean,
 )
 
 @Serializable
 data class Absence(
-    @Serializable(with = LocalDateSerializer::class) val date: LocalDate,
+    val date: LocalDate,
     val subject: String,
     val hours: Double,
     val justified: Boolean,

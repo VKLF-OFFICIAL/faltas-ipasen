@@ -14,7 +14,8 @@ import com.faltasipasen.app.scraper.ScrapeResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalDate
 import java.time.format.DateTimeFormatter
 
 interface AlertSink {
@@ -68,7 +69,7 @@ class SyncRunner(
                 // El resumen ya lo avisa en vivo con la fecha actual; guardarlo aquí dejaría un aviso
                 // obsoleto en pantalla después de corregir la fecha en Ajustes.
                 settings.setLastError(null)
-                val message = "La fecha de fin de curso (${stats.cutoff.format(cutoffDateFormat)}) " +
+                val message = "La fecha de fin de curso (${stats.cutoff.toJavaLocalDate().format(cutoffDateFormat)}) " +
                     "no cae en el curso que muestra iPasen. Revísala en Ajustes."
                 return@withLock SyncOutcome.Failed(Reason.PARSE_ERROR, message)
             }

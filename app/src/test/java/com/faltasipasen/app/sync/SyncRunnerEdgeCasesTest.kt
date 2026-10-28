@@ -18,18 +18,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 class SyncRunnerEdgeCasesTest {
-    private val today = LocalDate.of(2026, 9, 30)
+    private val today = LocalDate(2026, 9, 30)
 
     private val result = ScrapeResult(
         schedule = listOf(ScheduleSlot("REDES", 1, 2.0)),
         calendar = listOf(
-            CalendarDay(LocalDate.of(2026, 9, 14), true),
-            CalendarDay(LocalDate.of(2026, 9, 21), true),
+            CalendarDay(LocalDate(2026, 9, 14), true),
+            CalendarDay(LocalDate(2026, 9, 21), true),
         ),
-        absences = listOf(Absence(LocalDate.of(2026, 9, 14), "REDES", 2.0, false)),
+        absences = listOf(Absence(LocalDate(2026, 9, 14), "REDES", 2.0, false)),
     )
 
     private class FakeScraper(var outcome: () -> ScrapeResult) : IpasenScraper {

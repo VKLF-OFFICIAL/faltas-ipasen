@@ -63,7 +63,7 @@ import com.faltasipasen.app.domain.HoursStats
 import com.faltasipasen.app.domain.RiskLevel
 import com.faltasipasen.app.ui.theme.LocalRiskColors
 import com.faltasipasen.app.ui.theme.Tabular
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)

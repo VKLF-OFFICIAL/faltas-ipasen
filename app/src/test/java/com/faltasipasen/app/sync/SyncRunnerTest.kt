@@ -22,16 +22,16 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 class SyncRunnerTest {
-    private val today = LocalDate.of(2026, 9, 30)
+    private val today = LocalDate(2026, 9, 30)
 
     // 4 h lectivas de REDES en el curso (2 lunes x 2 h) y 2 h de falta = 50 %.
     private val result = ScrapeResult(
         schedule = listOf(ScheduleSlot("REDES", 1, 2.0)),
-        calendar = listOf(CalendarDay(LocalDate.of(2026, 9, 14), true), CalendarDay(LocalDate.of(2026, 9, 21), true)),
-        absences = listOf(Absence(LocalDate.of(2026, 9, 14), "REDES", 2.0, false)),
+        calendar = listOf(CalendarDay(LocalDate(2026, 9, 14), true), CalendarDay(LocalDate(2026, 9, 21), true)),
+        absences = listOf(Absence(LocalDate(2026, 9, 14), "REDES", 2.0, false)),
     )
 
     private class FakeScraper(var outcome: () -> ScrapeResult) : IpasenScraper {
@@ -159,7 +159,7 @@ class SyncRunnerTest {
     @Test
     fun `a cutoff outside the course iPasen shows fails without evaluating thresholds but keeps the snapshot`() = runTest {
         loggedIn()
-        settings.setCutoffDate(LocalDate.of(2026, 2, 15))
+        settings.setCutoffDate(LocalDate(2026, 2, 15))
         val outcome = runner.run() as SyncOutcome.Failed
         assertEquals(ScrapeException.Reason.PARSE_ERROR, outcome.reason)
         assertTrue(outcome.message.contains("Revísala en Ajustes"))

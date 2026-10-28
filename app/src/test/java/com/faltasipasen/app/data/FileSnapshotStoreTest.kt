@@ -10,15 +10,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 class FileSnapshotStoreTest {
     @get:Rule val tmp = TemporaryFolder()
 
     private val snapshot = Snapshot(
         schedule = listOf(ScheduleSlot("REDES", 1, 1.0)),
-        calendar = listOf(CalendarDay(LocalDate.of(2026, 9, 14), true)),
-        absences = listOf(Absence(LocalDate.of(2026, 9, 14), "REDES", 1.0, false)),
+        calendar = listOf(CalendarDay(LocalDate(2026, 9, 14), true)),
+        absences = listOf(Absence(LocalDate(2026, 9, 14), "REDES", 1.0, false)),
         syncedAtMillis = 1_790_000_000_000,
     )
 
@@ -80,6 +80,6 @@ class FileSnapshotStoreTest {
         )
         val loaded = FileSnapshotStore(file()).current.value!!
         assertEquals(ScheduleSlot("REDES", 1, 1.0), loaded.schedule.single())
-        assertEquals(Absence(LocalDate.of(2026, 9, 14), "REDES", 1.0, false), loaded.absences.single())
+        assertEquals(Absence(LocalDate(2026, 9, 14), "REDES", 1.0, false), loaded.absences.single())
     }
 }

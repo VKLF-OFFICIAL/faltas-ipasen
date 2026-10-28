@@ -40,7 +40,7 @@ import com.faltasipasen.app.data.ThemeMode
 import com.faltasipasen.app.domain.EducationLevel
 import com.faltasipasen.app.ui.theme.LocalRiskColors
 import kotlinx.coroutines.delay
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 private val themeLabels = mapOf(
     ThemeMode.SYSTEM to "Sistema",

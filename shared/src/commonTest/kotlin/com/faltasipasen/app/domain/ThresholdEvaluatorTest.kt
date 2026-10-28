@@ -1,16 +1,16 @@
 package com.faltasipasen.app.domain
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
-import java.time.LocalDate
+import kotlin.test.assertEquals
+import kotlin.test.Test
+import kotlinx.datetime.LocalDate
 
 class ThresholdEvaluatorTest {
     private fun stats(globalAbsent: Double, vararg subjects: HoursStats) = AbsenceStats(
         global = HoursStats("Total", 100.0, globalAbsent, 0.0),
         subjects = subjects.toList(),
-        courseStart = LocalDate.of(2026, 9, 1),
-        cutoff = LocalDate.of(2027, 2, 15),
-        countedUntil = LocalDate.of(2026, 10, 1),
+        courseStart = LocalDate(2026, 9, 1),
+        cutoff = LocalDate(2027, 2, 15),
+        countedUntil = LocalDate(2026, 10, 1),
     )
 
     @Test

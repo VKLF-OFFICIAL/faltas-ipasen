@@ -1,6 +1,7 @@
 package com.faltasipasen.app.domain
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 
 object CourseDates {
     private const val COURSE_START_MONTH = 9
@@ -15,8 +16,8 @@ object CourseDates {
      */
     fun defaultCutoff(today: LocalDate, level: EducationLevel = EducationLevel.FP_SUPERIOR): LocalDate {
         // Año académico actual: si estamos en septiembre o después, el curso acaba el año siguiente.
-        val endYear = if (today.monthValue >= COURSE_START_MONTH) today.year + 1 else today.year
-        return LocalDate.of(endYear, level.defaultCourseEndMonth, level.defaultCourseEndDay)
+        val endYear = if (today.month.number >= COURSE_START_MONTH) today.year + 1 else today.year
+        return LocalDate(endYear, level.defaultCourseEndMonth, level.defaultCourseEndDay)
     }
 
     /**
@@ -26,5 +27,5 @@ object CourseDates {
      *          cutoff 21-sep-2026 → inicio 1-sep-2025 (corte al final del curso 25-26).
      */
     fun courseStartFor(cutoff: LocalDate): LocalDate =
-        LocalDate.of(cutoff.year - 1, COURSE_START_MONTH, 1)
+        LocalDate(cutoff.year - 1, COURSE_START_MONTH, 1)
 }

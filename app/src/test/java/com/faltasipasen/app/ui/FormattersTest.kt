@@ -2,7 +2,7 @@ package com.faltasipasen.app.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 class FormattersTest {
     private val now = 1_790_000_000_000L
@@ -19,7 +19,7 @@ class FormattersTest {
 
     @Test
     fun `day header is capitalised Spanish`() {
-        assertEquals("Jueves, 24 de septiembre", formatDayHeader(LocalDate.of(2026, 9, 24)))
+        assertEquals("Jueves, 24 de septiembre", formatDayHeader(LocalDate(2026, 9, 24)))
     }
 
     @Test

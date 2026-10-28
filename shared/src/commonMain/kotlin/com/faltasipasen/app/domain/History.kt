@@ -1,6 +1,6 @@
 package com.faltasipasen.app.domain
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 data class HistoryEntry(
     val date: LocalDate,
@@ -26,7 +26,7 @@ object HistoryBuilder {
         val until = minOf(today, cutoff)
         val bySubject = schedule.groupBy { it.subject }
         return absences
-            .filter { !it.date.isBefore(courseStart) && !it.date.isAfter(until) }
+            .filter { it.date >= courseStart && it.date <= until }
             .map { absence ->
                 val slots = bySubject[absence.subject].orEmpty()
                 HistoryEntry(

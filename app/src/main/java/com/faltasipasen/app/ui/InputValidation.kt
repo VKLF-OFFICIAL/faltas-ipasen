@@ -1,7 +1,7 @@
 package com.faltasipasen.app.ui
 
 import com.faltasipasen.app.domain.EducationLevel
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 object InputValidation {
     val SYNC_INTERVALS: List<Int> = listOf(6, 12, 24)

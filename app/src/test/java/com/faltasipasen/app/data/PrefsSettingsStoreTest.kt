@@ -9,11 +9,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 class PrefsSettingsStoreTest {
     private val prefs = InMemorySharedPreferences()
-    private val store = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate.of(2026, 9, 28) }
+    private val store = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate(2026, 9, 28) }
 
     @Test
     fun `no credentials by default`() {
@@ -38,7 +38,7 @@ class PrefsSettingsStoreTest {
     @Test
     fun `defaults need no user input`() {
         assertEquals(15.0, store.thresholdPercent(), 0.0)
-        assertEquals(LocalDate.of(2027, 2, 15), store.cutoffDate())
+        assertEquals(LocalDate(2027, 2, 15), store.cutoffDate())
         assertEquals(12, store.syncIntervalHours())
         assertEquals(emptySet<String>(), store.activeAlertKeys())
         assertNull(store.lastError())
@@ -47,13 +47,13 @@ class PrefsSettingsStoreTest {
     @Test
     fun `values are persisted`() {
         store.setThresholdPercent(20.5)
-        store.setCutoffDate(LocalDate.of(2027, 2, 12))
+        store.setCutoffDate(LocalDate(2027, 2, 12))
         store.setSyncIntervalHours(6)
         store.setActiveAlertKeys(setOf("__total__"))
         store.setLastError("fallo")
-        val reopened = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate.of(2026, 9, 28) }
+        val reopened = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate(2026, 9, 28) }
         assertEquals(20.5, reopened.thresholdPercent(), 0.0)
-        assertEquals(LocalDate.of(2027, 2, 12), reopened.cutoffDate())
+        assertEquals(LocalDate(2027, 2, 12), reopened.cutoffDate())
         assertEquals(6, reopened.syncIntervalHours())
         assertEquals(setOf("__total__"), reopened.activeAlertKeys())
         assertEquals("fallo", reopened.lastError())
@@ -97,7 +97,7 @@ class PrefsSettingsStoreTest {
     fun `theme defaults to system and is persisted`() {
         assertEquals(ThemeMode.SYSTEM, store.themeMode())
         store.setThemeMode(ThemeMode.AMOLED)
-        assertEquals(ThemeMode.AMOLED, PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate.of(2026, 9, 28) }.themeMode())
+        assertEquals(ThemeMode.AMOLED, PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate(2026, 9, 28) }.themeMode())
     }
 
     @Test
@@ -114,7 +114,7 @@ class PrefsSettingsStoreTest {
     @Test
     fun `education level is persisted`() {
         store.setEducationLevel(EducationLevel.ESO)
-        val reopened = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate.of(2026, 9, 28) }
+        val reopened = PrefsSettingsStore(prefs, ReversingCipher()) { LocalDate(2026, 9, 28) }
         assertEquals(EducationLevel.ESO, reopened.educationLevel())
     }
 
