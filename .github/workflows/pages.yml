@@ -1,4 +1,5 @@
 name: Pages
+# Publica web/ en GitHub Pages.
 
 on:
   push:
