@@ -4,7 +4,7 @@ import kotlin.math.abs
 import kotlin.math.floor
 
 object AlertFormatter {
-    /** "16,2 %": coma decimal española y un decimal, redondeando la mitad hacia arriba como String.format. */
+    /** "16,2 %": coma decimal española y un decimal, redondeando la mitad hacia arriba. */
     fun percent(value: Double): String {
         val tenths = floor(abs(value) * 10 + 0.5).toLong()
         val sign = if (value < 0 && tenths != 0L) "-" else ""

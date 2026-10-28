@@ -6,6 +6,8 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
+    // El target nodejs() de :shared declara sus propios repos (Node.js y Yarn), que FAIL_ON_PROJECT_REPOS rechaza;
+    // por eso node y yarn se sirven desde los repos ivy de abajo, restringidos con exclusiveContent.
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
