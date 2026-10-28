@@ -1,7 +1,5 @@
 package com.faltasipasen.app.domain
 
-data class ThresholdAlert(val key: String, val label: String, val percent: Double)
-
 data class ThresholdEvaluation(val newAlerts: List<ThresholdAlert>, val activeKeys: Set<String>)
 
 object ThresholdEvaluator {

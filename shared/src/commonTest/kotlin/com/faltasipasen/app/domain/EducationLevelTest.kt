@@ -1,9 +1,9 @@
 package com.faltasipasen.app.domain
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 class EducationLevelTest {
 
@@ -68,7 +68,7 @@ class EducationLevelTest {
     @Test
     fun `default thresholds are within valid range`() {
         EducationLevel.entries.forEach {
-            assertTrue("${it.name} threshold out of range", it.defaultThreshold in 1.0..100.0)
+            assertTrue(it.defaultThreshold in 1.0..100.0, "${it.name} threshold out of range")
         }
     }
 }
