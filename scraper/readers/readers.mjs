@@ -4,19 +4,36 @@
 
 const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
 
-// innerText no existe sin maquetación: <br> y saltos cuentan como línea, el resto se normaliza.
+// Aproximación de innerText (sin maquetación): <br> y los bordes de bloque cuentan como salto de
+// línea; el resto de espacios (también los saltos de línea del código fuente) colapsan a un espacio.
+const BLOCKS = new Set(['DIV', 'P', 'LI', 'TR', 'TABLE', 'UL', 'OL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+const SKIPPED = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT']);
+
+function flatText(node) {
+  if (node.nodeType === 3) return node.textContent.replace(/\s+/g, ' ');
+  if (node.nodeType !== 1) return '';
+  const tag = node.tagName.toUpperCase();
+  if (SKIPPED.has(tag)) return '';
+  if (tag === 'BR') return '\n';
+  const inner = Array.from(node.childNodes).map(flatText).join('');
+  return BLOCKS.has(tag) ? '\n' + inner + '\n' : inner;
+}
+
 function cellLines(cell) {
-  const copy = cell.cloneNode(true);
-  copy.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
-  return copy.textContent.split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return flatText(cell).split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
 }
 
 function cellText(cell) {
   return cell.textContent.replace(/\s+/g, ' ').trim();
 }
 
+// Solo las filas propias de la tabla: las de una tabla anidada en una celda no cuentan (como table.rows).
 function rows(table) {
-  return Array.from(table.querySelectorAll('tr'));
+  return Array.from(table.querySelectorAll('tr')).filter((tr) => {
+    let p = tr.parentNode;
+    while (p && p.tagName !== 'TABLE') p = p.parentNode;
+    return p === table;
+  });
 }
 
 function cells(row) {
@@ -82,7 +99,7 @@ export function readSchedule(doc) {
 // Los "Retraso" no son faltas. Una fila ilegible se aparta en `skipped`; una tabla cambiada (columnas,
 // filtro, número de filas) hace fallar la lectura porque entonces todas las cifras serían erróneas.
 export function readAbsences(doc) {
-  const bodyText = doc.body ? cellText(doc.body) : '';
+  const bodyText = doc.body ? flatText(doc.body).replace(/\s+/g, ' ').trim() : '';
   const table = Array.from(doc.querySelectorAll('table')).find((t) => {
     const first = rows(t)[0];
     return first && /fecha/i.test(cellText(first)) && /estado/i.test(cellText(first));

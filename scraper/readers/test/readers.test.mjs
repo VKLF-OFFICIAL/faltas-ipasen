@@ -71,3 +71,39 @@ test('readCalendar fails without calendar data or September start', () => {
   assert.throws(() => readCalendar('<html></html>'), /datos del calendario/);
   assert.throws(() => readCalendar(fixture('calendario.html').replace(/primerDiaLectivo/g, 'otro')), /primer día lectivo/);
 });
+
+test('readSchedule reads block-level cell content as separate lines, like innerText', () => {
+  const html = `<html><body><table>
+    <tr><th></th><th>Lunes</th><th>Martes</th></tr>
+    <tr><td>8:15 - 9:15</td><td><div>SRI</div><div>Aula 12</div></td><td>SRI
+   <span>Aula 12</span></td></tr>
+  </table><table>
+    <tr><th>Materias</th><th></th></tr>
+    <tr><td>SRI</td><td>Servicios de red e Internet</td></tr>
+  </table></body></html>`;
+  // The Martes cell is one inline line ("SRI Aula 12"), so it does not match, as in the APK.
+  assert.deepEqual(readSchedule(new DOMParser().parseFromString(html, 'text/html')), [
+    { subject: 'Servicios de red e Internet', abbr: 'SRI', day: 1, hours: 1 },
+  ]);
+});
+
+test('readAbsences ignores rows of a table nested inside a cell', () => {
+  const nested = '<td><table><tr><td>1/1/2026</td><td>8:15 - 9:15</td><td>X</td><td>Y</td></tr></table></td>';
+  const html = fixture('faltas.html').replace(
+    '<td>20/10/2026</td><td>Día completo</td><td></td>',
+    '<td>20/10/2026</td><td>Día completo</td>' + nested,
+  );
+  const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
+  assert.deepEqual(read, readAbsences(doc('faltas.html')));
+  assert.equal(read.absences.length, 3);
+  assert.equal(read.skipped.length, 1);
+});
+
+test('readAbsences reads "Registros" from visible page text only', () => {
+  const html = fixture('faltas.html')
+    .replace('<body>', '<body><script>var s = "Registros: 99";</script><style>p::after{content:"Registros: 7"}</style>')
+    .replace('<p>Registros: 5</p>', '<p>Registros:</p><p>5</p>');
+  const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
+  assert.equal(read.absences.length, 3);
+  assert.equal(read.skipped.length, 1);
+});
