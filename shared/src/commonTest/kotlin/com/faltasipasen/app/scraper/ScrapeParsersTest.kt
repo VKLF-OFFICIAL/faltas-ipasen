@@ -3,15 +3,15 @@ package com.faltasipasen.app.scraper
 import com.faltasipasen.app.domain.Absence
 import com.faltasipasen.app.domain.CalendarDay
 import com.faltasipasen.app.domain.ScheduleSlot
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+import kotlin.test.Test
 import kotlinx.datetime.LocalDate
 
 class ScrapeParsersTest {
     private fun reasonOf(block: () -> Unit): ScrapeException.Reason =
-        assertThrows(ScrapeException::class.java) { block() }.reason
+        assertFailsWith<ScrapeException> { block() }.reason
 
     @Test
     fun `parses schedule and normalizes subject names`() {
@@ -125,7 +125,7 @@ class ScrapeParsersTest {
     @Test
     fun `script failure is a parse error with the script message`() {
         val raw = """{"ok":false,"error":"tabla no encontrada"}"""
-        val e = assertThrows(ScrapeException::class.java) { ScrapeParsers.parseAbsences(raw) }
+        val e = assertFailsWith<ScrapeException> { ScrapeParsers.parseAbsences(raw) }
         assertEquals(ScrapeException.Reason.PARSE_ERROR, e.reason)
         assertTrue(e.message!!.contains("tabla no encontrada"))
     }

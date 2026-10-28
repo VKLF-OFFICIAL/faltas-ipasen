@@ -15,7 +15,6 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
-import java.util.Locale
 
 @Serializable
 private data class SlotDto(val subject: String, val day: Int, val hours: Double = 1.0, val abbr: String = "")
@@ -106,7 +105,7 @@ object ScrapeParsers {
 
     fun displayName(name: String): String = name.trim().replace(whitespace, " ")
 
-    fun normalizeSubject(name: String): String = displayName(name).uppercase(Locale.ROOT)
+    fun normalizeSubject(name: String): String = displayName(name).uppercase()
 
     private inline fun <reified T> decode(raw: String, step: String): T {
         val data = payload(raw, step)
