@@ -1,7 +1,7 @@
 # Versión web — Diseño
 
 **Fecha:** 2026-10-28
-**Estado:** Pendiente de revisión del usuario
+**Estado:** Aprobado por el usuario ("sí, sigue"), con la fuente marcador en lugar de Cloudflare
 **Parte de:** app Faltas iPasen (spec base: `2026-09-27-faltas-ipasen-app-design.md`, rediseño: `2026-09-28-rediseno-visual-design.md`)
 
 ## Objetivo
@@ -19,13 +19,20 @@ web y APK viven en el mismo repo y se mantienen a la vez; todo lo que pueda comp
 | Alojamiento | GitHub: repo, GitHub Pages para la web y GitHub Actions para desplegar |
 | Repo | Público (no contiene credenciales ni datos personales) |
 | APK | Se sigue manteniendo; los cambios deben poder llegar a web y APK |
+| Cloudflare | **Por ahora no.** La web recibe los datos con un marcador (bookmarklet) que se ejecuta dentro de Séneca. El Worker queda como segunda fuente futura |
 
-## Por qué hace falta un servidor intermediario
+## De dónde saca los datos la web
 
 Una página en `*.github.io` no puede iniciar sesión en Séneca ni leer sus páginas: son orígenes distintos
-y Séneca no envía cabeceras CORS. GitHub Pages solo sirve archivos estáticos. Por eso un **Cloudflare
-Worker** (plan gratuito: 100 000 peticiones/día, 50 subpeticiones por invocación, 10 ms de CPU sin contar
-esperas de red) hace de intermediario mínimo. Se despliega desde el mismo repo con GitHub Actions.
+y Séneca no envía cabeceras CORS. GitHub Pages solo sirve archivos estáticos. Hay dos formas de salvarlo;
+la web tiene un único punto de entrada de datos (`fuente`) para admitir las dos:
+
+1. **Marcador (esta versión).** El usuario entra en Séneca, pulsa el marcador y este, desde dentro de
+   Séneca (mismo origen), abre las tres secciones con `fetch` + `POST` a sus `data-menulink`, las lee con
+   los readers compartidos y envía el JSON a la web. La contraseña nunca sale de Séneca y no hay servidor.
+2. **Cloudflare Worker (más adelante).** La web pide usuario y clave y el Worker hace login y navegación
+   (plan gratuito: 100 000 peticiones/día, 50 subpeticiones por invocación, 10 ms de CPU sin contar
+   esperas de red). Requiere cuenta de Cloudflare; se diseña abajo pero no se construye ahora.
 
 ## Resultado de la prueba de viabilidad (2026-10-28)
 
@@ -38,7 +45,8 @@ Hecha con la sesión real del usuario en Opera; el código de la prueba se desca
 | Faltas | Sí | "Seguimiento del curso > Faltas de asistencia > Consulta": la tabla `Fecha / Tramo horario / Ausencia de / Estado` viene en el HTML. |
 | Horario | Sí | "Tutoría > Horario": tablas `Lunes…Viernes` y `Materias` en el HTML. |
 | Calendario | Sí | "Centro > Calendario escolar": los días vienen como JSON en un script (`top.datosCalendario = jQuery.parseJSON('[{"title","start","className"}…]')`, clases `festivoAndalucia`, `festivoProvincial`, `festivoLocalidad`, `primerDiaLectivo`, `ultimoDiaLectivo`). |
-| IP de Cloudflare | **Sin probar** | Hay que desplegar un Worker de prueba para saber si Séneca acepta conexiones desde Cloudflare. |
+| IP de Cloudflare | **Sin probar** | Solo afecta a la fuente Worker (futura). |
+| Scripts externos en Séneca | Sí | La página de Séneca con sesión no envía CSP (ni cabecera ni `<meta>`) y carga un `<script src>` de otro dominio. El marcador puede ser un cargador que trae el código desde GitHub Pages. |
 
 Las páginas llegan en `ISO-8859-1`.
 
@@ -52,9 +60,32 @@ faltas-ipasen-app/
 │   ├─ readers/    funciones puras sobre un Document: readAbsences, readSchedule, readCalendar
 │   └─ webview/    navegación del APK (openSection, waitFor, puente) + pasos que llaman a los readers
 ├─ app/        APK Android (Compose), depende de shared/ y empaqueta scraper/ como assets
-├─ web/        Web estática (GitHub Pages), usa shared/ compilado a JS y scraper/readers
-└─ worker/     Cloudflare Worker: login + navegación por POST; devuelve el HTML de cada sección
+├─ web/        Web estática (GitHub Pages), usa shared/ compilado a JS; incluye bookmarklet.js
+└─ worker/     (futuro) Cloudflare Worker: login + navegación por POST; devuelve el HTML de cada sección
 ```
+
+### Marcador (bookmarklet)
+
+- El marcador es un cargador de una línea que inserta `<script src="https://<usuario>.github.io/<repo>/bookmarklet.js">`
+  en la página de Séneca. El código real vive en Pages, así que se actualiza con cada despliegue sin
+  que el usuario tenga que volver a crear el marcador.
+- `bookmarklet.js` (generado desde `scraper/readers` + un navegador por `fetch`):
+  1. Comprueba que está en `seneca.juntadeandalucia.es` con sesión (existe `#menupasen`); si no, avisa.
+  2. Muestra una capa "Leyendo faltas…" con el paso actual.
+  3. Busca por ruta de menú las entradas de horario, calendario y faltas (misma lógica que el APK) y hace
+     `POST` a cada `data-menulink` con `COD_PAGINA_ANTERIOR`/`TIEMPO_PAGINA_ANTERIOR`; decodifica `ISO-8859-1`.
+  4. Pasa cada HTML por `DOMParser` y su reader → `{schedule, calendar, absences}`.
+  5. Comprime el JSON (`CompressionStream('gzip')` + base64url) y abre la web con los datos en el
+     fragmento: `https://<usuario>.github.io/<repo>/#importar=<datos>`. El fragmento no se envía a
+     ningún servidor. Abre en la misma pestaña (evita el bloqueo de ventanas emergentes tras esperas).
+  6. Errores (menú no encontrado, tabla cambiada, sesión caducada) se muestran en la capa con el paso y
+     lo que falta, igual que los diagnósticos del APK.
+- La web, al ver `#importar=`, descomprime, procesa con `shared`, guarda y limpia el fragmento con
+  `history.replaceState`.
+- Usar `fetch` sobre los menús consume esos tokens de un solo uso; tras el marcador, si el usuario sigue
+  en Séneca y un menú falla, basta con recargar. Se avisa en la capa final.
+- Página "Instalar marcador" en la web: enlace arrastrable en escritorio e instrucciones para Chrome/Opera
+  en Android (guardar marcador, editar URL, invocarlo escribiendo su nombre en la barra).
 
 ### shared/ (Kotlin Multiplatform)
 
@@ -79,7 +110,7 @@ faltas-ipasen-app/
 - La web usa los readers con `new DOMParser().parseFromString(html, 'text/html')`. Como `innerText` no
   existe sin maquetación, los readers usan `textContent` normalizado.
 
-### worker/
+### worker/ (futuro, no se construye en esta versión)
 
 - `POST /sync` con `{usuario, clave}` → en la misma invocación: GET del portal, login, `Acceso.jsp`,
   localizar las tres entradas del menú por ruta y hacer `POST` a cada una → responde
@@ -94,24 +125,30 @@ faltas-ipasen-app/
 
 - HTML, CSS y JS sin framework pesado; mismo aspecto que el APK: tema índigo (`#3949AB`), Inter, temas
   Sistema/Claro/Oscuro/AMOLED, barra inferior Resumen · Historial · Ajustes.
-- Pantallas: Bienvenida/acceso (usuario, clave, nivel, umbral y fecha de fin con los mismos valores por
-  defecto que el APK), Resumen, Historial (filtrable por módulo), Ajustes (incluye cerrar sesión).
-- Sincroniza al abrir y con el botón "Sincronizar". Sin sincronización en segundo plano ni push en esta
-  versión; los avisos de riesgo se muestran dentro de la web.
+- Pantallas: Bienvenida (nivel, umbral y fecha de fin con los mismos valores por defecto que el APK, más
+  instalar el marcador), Resumen, Historial (filtrable por módulo), Ajustes (incluye borrar datos).
+- "Sincronizar" en esta versión = abrir Séneca en otra pestaña y explicar que se pulse el marcador. Sin
+  sincronización en segundo plano ni push; los avisos de riesgo se muestran dentro de la web.
+- Con la fuente Worker (futura) la Bienvenida pedirá también usuario y clave, como el APK.
 - Instalable como PWA (manifest + service worker solo para los archivos de la web, nunca para datos).
 - Datos (último resultado, historial, ajustes) en `localStorage`/IndexedDB del navegador.
 
-## Flujo de una sincronización (web)
+## Flujo de una sincronización (web, con marcador)
 
-1. La web envía `POST /sync` al Worker por HTTPS.
-2. El Worker devuelve el HTML de horario, calendario y faltas o un código de error.
-3. La web pasa cada HTML por su reader → JSON en bruto.
+1. El usuario entra en Séneca y pulsa el marcador.
+2. El marcador lee las tres secciones dentro de Séneca y produce el JSON en bruto con los readers.
+3. Abre la web con el JSON comprimido en `#importar=`.
 4. `shared` (`ScrapeParsers` + cálculo) produce el resumen, idéntico al del APK.
 5. Se guarda el resultado y se actualiza el historial.
 
+Con la fuente Worker (futura), los pasos 1–3 se sustituyen por `POST /sync` + readers en la web.
+
 ## Contraseñas y seguridad
 
-- "Recordar contraseña" es opcional. Si se marca, la clave se cifra con AES-GCM usando una `CryptoKey`
+- Con el marcador la web nunca ve la contraseña.
+- La web solo acepta `#importar=` con el formato esperado (versión, tres claves, validación de `shared`);
+  cualquier otra cosa se descarta con un mensaje.
+- (Fuente Worker, futura) "Recordar contraseña" es opcional. Si se marca, la clave se cifra con AES-GCM usando una `CryptoKey`
   no exportable guardada en IndexedDB (equivalente al Keystore del APK). Si no, se pide en cada sincronización.
 - Tras `LOGIN_FAILED` o `LOCKED` no se reintenta automáticamente (evita el bloqueo de Séneca), igual que el APK.
 - Cabecera CSP estricta en la web; sin scripts de terceros.
@@ -119,29 +156,30 @@ faltas-ipasen-app/
 
 ## Errores (web)
 
-Mismos mensajes que el APK para los casos comunes (clave incorrecta, tiempo agotado con el paso, página
-cambiada con lo que falta, sin conexión), más "Séneca ha rechazado la conexión del servidor" para
-`UPSTREAM_BLOCKED`. Las filas de faltas ilegibles se muestran como en el APK (`SkippedAbsencesNote`).
+Mismos mensajes que el APK para los casos comunes (página cambiada con lo que falta, sesión caducada,
+sin conexión), mostrados en la capa del marcador o en la web según dónde ocurran. (Fuente Worker: además
+clave incorrecta y "Séneca ha rechazado la conexión del servidor".) Las filas de faltas ilegibles se muestran como en el APK (`SkippedAbsencesNote`).
 
 ## Pruebas
 
 - `shared`: tests actuales en `commonTest`, ejecutados en JVM y JS.
 - `readers`: tests con HTML de muestra (anonimizado), ejecutados en Node con un DOM (jsdom/linkedom) y
   comparados con el JSON esperado.
-- `worker`: tests contra un Séneca simulado (respuestas grabadas y anonimizadas).
+- Marcador: test del navegador por `fetch` con respuestas simuladas; prueba real en la sesión de Séneca
+  del usuario en Opera antes de publicar.
+- Codificación `#importar=`: ida y vuelta (comprimir → descomprimir) en tests.
 - APK: tras cada fase que lo toca, instalación por adb en el móvil del usuario y sincronización real.
-- GitHub Actions: tests en cada push; despliegue de Pages y del Worker solo desde `main` con todo en verde.
+- GitHub Actions: tests en cada push; despliegue de Pages solo desde `main` con todo en verde.
 
 ## Orden de trabajo
 
 1. `shared/` + migración a `kotlinx-datetime`; el APK sigue igual (verificado en el móvil).
 2. Separar readers de la navegación; `readCalendar` con `datosCalendario` (verificado en el móvil).
-3. Worker + prueba de IP de Cloudflare (requiere cuenta gratuita del usuario). **Si Séneca bloquea a
-   Cloudflare, se para aquí** y se buscan alternativas antes de construir la web.
-4. Web.
-5. Repo público en GitHub, GitHub Actions, Pages y despliegue del Worker.
+3. Web + marcador.
+4. Repo público en GitHub (revisado antes de subir), GitHub Actions y Pages.
+5. (Futuro, cuando el usuario quiera) Worker de Cloudflare como segunda fuente.
 
 ## Fuera de alcance (por ahora)
 
-Sincronización en segundo plano y notificaciones push en la web; varias cuentas a la vez; clave de firma
-del APK para release.
+Worker de Cloudflare; sincronización en segundo plano y notificaciones push en la web; varias cuentas a
+la vez; clave de firma del APK para release.
