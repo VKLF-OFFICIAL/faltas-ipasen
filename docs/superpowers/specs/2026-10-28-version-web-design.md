@@ -21,6 +21,27 @@ web y APK viven en el mismo repo y se mantienen a la vez; todo lo que pueda comp
 | APK | Se sigue manteniendo; los cambios deben poder llegar a web y APK |
 | Cloudflare | **Por ahora no.** La web recibe los datos con un marcador (bookmarklet) que se ejecuta dentro de Séneca. El Worker queda como segunda fuente futura |
 
+## Cambio de decisión (2026-10-28, tarde) — manda sobre el resto del documento
+
+El usuario quiere la web **completamente online**: "que al abrirla te pida la información sobre ti y
+tus datos de iPasen y te dé los resultados, que haga esto cada vez que abres la página". Eligió
+"Login en la web" con un Cloudflare Worker. Por tanto:
+
+- **Fuente de datos: Worker** (sección `worker/`). El marcador se descarta.
+- **Nada se guarda**: cada vez que se abre la web pide etapa, umbral, fecha de fin, usuario y clave;
+  muestra Resumen e Historial de esa consulta. Sin `localStorage`, sin "recordar contraseña", sin PWA.
+- Prueba (2026-10-28): un Worker desplegado alcanza Séneca (HTTP 200, formulario de login, ~250 ms).
+- Login exacto (de `IdenUsuExtResp.js`): `POST /seneca/jsp/ComprobarUsuarioExt.jsp` con
+  `N_V_=NV_<0..10000>`, `rndval=<0..1e9>`, `NAV_WEB_NOMBRE`, `NAV_WEB_VERSION`, `RESOLUCION`,
+  `CLAVECIFRADA=cifrar(clave)`, `USUARIO`, `C_INTERFAZ=PASEN`; respuesta XML `correcto`/`mensaje`; si
+  `SI`, enviar el formulario `FORMULARIO_IDEN_USU` (`CON_PRUEBA=N`, `USER_QR=`) a
+  `/seneca/jsp/Acceso.jsp?rndval=<n>` y seguir redirecciones hasta la página con `#menupasen`.
+- `cifrar(s)` = concatenar en decimal los `charCodeAt` de `s` → `x`; resultado `x^3584956249 mod
+  356056806984207294102423357623243547284021` en decimal. Verificado con `BigInt` contra el script
+  original de Séneca: 307/307 coincidencias.
+- Los readers de la web se escriben ahora en `scraper/readers/`. Que el APK use esos mismos readers
+  queda para un plan posterior; hasta entonces el APK sigue con sus scripts.
+
 ## De dónde saca los datos la web
 
 Una página en `*.github.io` no puede iniciar sesión en Séneca ni leer sus páginas: son orígenes distintos
