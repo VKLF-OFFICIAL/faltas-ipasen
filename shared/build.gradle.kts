@@ -12,7 +12,12 @@ kotlin {
         }
     }
     js(IR) {
+        outputModuleName.set("shared")
         nodejs()
+        browser {
+            testTask { enabled = false }
+        }
+        useEsModules()
         binaries.library()
     }
 
