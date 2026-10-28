@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faltas iPasen</title>
+<meta name="description" content="App Android que calcula tu porcentaje de faltas por módulo a partir de iPasen, antes de que superes el límite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #3949AB; --on-primary: #FFFFFF; --primary-container: #E0E3FF; --on-primary-container: #0A1570;
+    --bg: #F7F8FC; --surface: #FFFFFF; --surface-2: #EEF0F7; --text: #16181F; --muted: #5A5F6E; --outline: #D7DAE5;
+    --green: #2E7D32; --amber: #B26A00; --red: #C62828;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #B8C3FF; --on-primary: #0E1D78; --primary-container: #2C3A8F; --on-primary-container: #DDE1FF;
+      --bg: #111318; --surface: #1A1C22; --surface-2: #23262E; --text: #E3E4EA; --muted: #A7ABB8; --outline: #3A3E49;
+      --green: #81C784; --amber: #FFB74D; --red: #EF9A9A;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 Inter, system-ui, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 0 16px 48px; }
+  a { color: var(--primary); }
+  header.hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; padding: 56px 0 40px; }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--muted); }
+  .brand svg { width: 40px; height: 40px; }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; margin: 16px 0 12px; letter-spacing: -0.02em; }
+  .lead { font-size: 1.15rem; color: var(--muted); margin: 0 0 24px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; font-weight: 600; text-decoration: none; }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-ghost { color: var(--primary); border: 1px solid var(--outline); }
+  .small { font-size: 0.875rem; color: var(--muted); }
+  .phone { background: var(--surface); border: 1px solid var(--outline); border-radius: 28px; padding: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); }
+  @media (prefers-color-scheme: dark) { .phone { box-shadow: none; } }
+  .phone h3 { margin: 0 0 4px; font-size: 0.95rem; color: var(--muted); font-weight: 500; }
+  .total { font-size: 2.25rem; font-weight: 700; margin: 0 0 16px; font-variant-numeric: tabular-nums; }
+  .row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--outline); }
+  .abbr { font-weight: 600; }
+  .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 3px; }
+  .pct { font-weight: 600; font-variant-numeric: tabular-nums; }
+  section { padding: 32px 0; border-top: 1px solid var(--outline); }
+  h2 { font-size: 1.5rem; margin: 0 0 20px; letter-spacing: -0.01em; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; padding: 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 1rem; }
+  .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  ol.steps { margin: 0; padding-left: 20px; }
+  ol.steps li { margin-bottom: 8px; }
+  .note { background: var(--primary-container); color: var(--on-primary-container); border-radius: 16px; padding: 16px 20px; }
+  footer { padding: 24px 0 0; border-top: 1px solid var(--outline); color: var(--muted); font-size: 0.875rem; }
+  @media (max-width: 760px) {
+    header.hero { grid-template-columns: 1fr; padding-top: 32px; gap: 28px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#3949AB"/><path d="M12 13h16M12 20h10M12 27h6" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="28" cy="26" r="4" fill="#fff"/></svg>
+        Faltas iPasen
+      </div>
+      <h1>Sabe cuántas faltas llevas antes de que sea tarde</h1>
+      <p class="lead">Lee tus faltas de iPasen y calcula el porcentaje de cada módulo o asignatura frente al límite de tu etapa.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/releases/latest/download/faltas-ipasen.apk">Descargar APK</a>
+        <a class="btn btn-ghost" href="https://github.com/VKLF-OFFICIAL/faltas-ipasen">Código en GitHub</a>
+      </div>
+      <p class="small">Android 8.0 o superior · Gratis y sin anuncios</p>
+    </div>
+    <div class="phone" aria-label="Ejemplo del resumen de la app (datos inventados)">
+      <h3>Total del curso</h3>
+      <p class="total">6,8 %</p>
+      <div class="row"><span class="abbr">SRI</span><div class="bar"><span style="width:84%;background:var(--red)"></span></div><span class="pct">12,6 %</span></div>
+      <div class="row"><span class="abbr">IAW</span><div class="bar"><span style="width:55%;background:var(--amber)"></span></div><span class="pct">8,2 %</span></div>
+      <div class="row"><span class="abbr">ASGBD</span><div class="bar"><span style="width:27%;background:var(--green)"></span></div><span class="pct">4,0 %</span></div>
+      <div class="row"><span class="abbr">SAD</span><div class="bar"><span style="width:12%;background:var(--green)"></span></div><span class="pct">1,8 %</span></div>
+      <p class="small">Ejemplo con datos inventados · umbral 15 %</p>
+    </div>
+  </header>
+
+  <section>
+    <h2>Qué hace</h2>
+    <div class="grid">
+      <div class="card"><h3>Porcentaje por módulo</h3><p>Cruza tu horario, el calendario escolar y tus faltas para calcular el % real de cada módulo y del total.</p></div>
+      <div class="card"><h3>Umbral de tu etapa</h3><p>ESO, Bachillerato, Grado Básico, Medio o Superior, con el límite habitual y editable.</p></div>
+      <div class="card"><h3>Avisos</h3><p>Sincroniza en segundo plano y te avisa cuando superas el umbral en algún módulo.</p></div>
+      <div class="card"><h3>Margen</h3><p>Cuántas horas puedes faltar todavía sin pasarte, y cuáles están justificadas.</p></div>
+      <div class="card"><h3>Historial</h3><p>Todas tus faltas día a día, filtrables por módulo.</p></div>
+      <div class="card"><h3>Privada</h3><p>Tu contraseña se guarda cifrada en el móvil y solo se envía a iPasen. Sin servidores propios ni analítica.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cómo instalarla</h2>
+    <ol class="steps">
+      <li>Pulsa <a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/releases/latest/download/faltas-ipasen.apk">Descargar APK</a> desde el móvil.</li>
+      <li>Abre el archivo descargado. Si Android lo pide, permite instalar apps desde el navegador.</li>
+      <li>Abre Faltas iPasen, elige tu etapa e inicia sesión con tu usuario de iPasen.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="note">Próximamente: versión web para usarla también desde el ordenador o un iPhone.</div>
+  </section>
+
+  <footer>
+    No es una app oficial ni está relacionada con la Junta de Andalucía. Usa tu propia cuenta de iPasen igual que el navegador.
+    · <a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/blob/master/LICENSE">Licencia no comercial</a>
+  </footer>
+</main>
+</body>
+</html>

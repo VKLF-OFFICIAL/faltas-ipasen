@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -19,9 +20,27 @@ android {
         versionName = "1.0"
     }
 
+    // La clave de release vive fuera del repo; sin ella el release se compila sin firmar.
+    val signingProps = rootProject.file(
+        System.getenv("FALTAS_SIGNING_PROPERTIES")
+            ?: "${System.getProperty("user.home")}/.android-keys/faltas-ipasen.properties",
+    )
+    signingConfigs {
+        if (signingProps.exists()) {
+            val props = Properties().apply { signingProps.inputStream().use { load(it) } }
+            create("release") {
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
