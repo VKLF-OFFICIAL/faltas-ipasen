@@ -99,11 +99,30 @@ test('readAbsences ignores rows of a table nested inside a cell', () => {
   assert.equal(read.skipped.length, 1);
 });
 
-test('readAbsences reads "Registros" from visible page text only', () => {
-  const html = fixture('faltas.html')
-    .replace('<body>', '<body><script>var s = "Registros: 99";</script><style>p::after{content:"Registros: 7"}</style>')
-    .replace('<p>Registros: 5</p>', '<p>Registros:</p><p>5</p>');
+test('readAbsences reads the Registros count from block elements, not glued digits', () => {
+  const html = fixture('faltas.html').replace('<p>Registros: 5</p>', '<section>Registros: 5</section><section>0</section>');
   const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
   assert.equal(read.absences.length, 3);
   assert.equal(read.skipped.length, 1);
+});
+
+test('readAbsences ignores script and style text in the Registros count', () => {
+  const html = fixture('faltas.html')
+    .replace('<body>', '<body><script>var s = "Registros: 99";</script><style>p::after{content:"Registros: 7"}</style>');
+  const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
+  assert.equal(read.absences.length, 3);
+  assert.equal(read.skipped.length, 1);
+});
+
+test('readSchedule treats every HTML block element as a line break', () => {
+  const html = `<html><body><table>
+    <tr><th></th><th>Lunes</th></tr>
+    <tr><td>8:15 - 9:15</td><td><section>SRI</section><section>Aula 12</section></td></tr>
+  </table><table>
+    <tr><th>Materias</th><th></th></tr>
+    <tr><td>SRI</td><td>Servicios de red e Internet</td></tr>
+  </table></body></html>`;
+  assert.deepEqual(readSchedule(new DOMParser().parseFromString(html, 'text/html')), [
+    { subject: 'Servicios de red e Internet', abbr: 'SRI', day: 1, hours: 1 },
+  ]);
 });

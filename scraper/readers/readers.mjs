@@ -6,7 +6,14 @@ const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', '
 
 // Aproximación de innerText (sin maquetación): <br> y los bordes de bloque cuentan como salto de
 // línea; el resto de espacios (también los saltos de línea del código fuente) colapsan a un espacio.
-const BLOCKS = new Set(['DIV', 'P', 'LI', 'TR', 'TABLE', 'UL', 'OL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+// Elementos de bloque de HTML (BR se trata aparte). TD y TH también separan, para que celdas
+// contiguas no se peguen en el texto de la página.
+const BLOCKS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'CENTER', 'DD', 'DETAILS', 'DIALOG', 'DIV', 'DL', 'DT',
+  'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HEADER',
+  'HR', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'SUMMARY', 'TABLE', 'TBODY', 'THEAD', 'TFOOT',
+  'TR', 'TD', 'TH', 'UL', 'CAPTION',
+]);
 const SKIPPED = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT']);
 
 function flatText(node) {
