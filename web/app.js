@@ -1,7 +1,9 @@
-// Faltas iPasen (web). Sin servidor y sin almacenamiento: los datos llegan en el fragmento de la URL,
-// viven solo en memoria y desaparecen al recargar. Nada de iPasen se inserta como HTML.
+// Faltas iPasen (web). Sin almacenamiento: los datos (de la consulta al Worker o del fragmento de la URL
+// del marcador) viven solo en memoria y desaparecen al recargar. Nada de iPasen se inserta como HTML.
 import { FaltasWeb } from './shared/shared.mjs';
 import { unpack } from './lib/transfer.mjs';
+import { readSchedule, readCalendar, readAbsences } from './readers/readers.mjs';
+import { WORKER_URL } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const VISTAS = ['bienvenida', 'datos', 'resultados', 'historial'];
@@ -13,6 +15,8 @@ const raw = (d) => JSON.stringify({ ok: true, data: d });
 let datos = null;   // { schedule, calendar, absences }, solo en memoria
 let niveles = [];
 let resultado = null;
+let ajustes = { fin: '', umbral: 0 };
+let origen = 'consulta'; // 'consulta' | 'marcador': a dónde vuelve "Nueva consulta"
 
 function mostrar(vista) {
   for (const v of VISTAS) $('vista-' + v).hidden = v !== vista;
@@ -53,6 +57,7 @@ function bienvenida() {
       $('copiado').textContent = 'No se pudo copiar; mantén pulsado el botón “Faltas iPasen” y copia el enlace.';
     }
   });
+  cargarNiveles();
   mostrar('bienvenida');
 }
 
@@ -83,45 +88,109 @@ async function importar(fragmento) {
 
 // ---------- Formulario ----------
 
+function cargarNiveles() {
+  if (niveles.length) return;
+  niveles = JSON.parse(FaltasWeb.niveles(hoy));
+  const def = niveles.some((n) => n.id === 'FP_SUPERIOR') ? 'FP_SUPERIOR' : niveles[0].id;
+  for (const p of ['', 'c-']) {
+    for (const n of niveles) $(p + 'etapa').append(el('option', { value: n.id }, n.label));
+    $(p + 'etapa').value = def;
+    rellenar(p);
+  }
+}
+
 function formulario() {
   error('');
-  if (!niveles.length) {
-    niveles = JSON.parse(FaltasWeb.niveles(hoy));
-    for (const n of niveles) $('etapa').append(el('option', { value: n.id }, n.label));
-    $('etapa').value = niveles.some((n) => n.id === 'FP_SUPERIOR') ? 'FP_SUPERIOR' : niveles[0].id;
-    rellenar();
-  }
+  cargarNiveles();
+  origen = 'marcador';
   mostrar('datos');
 }
 
-function rellenar() {
-  const n = niveles.find((x) => x.id === $('etapa').value);
-  $('umbral').value = n.threshold;
-  $('fin').value = n.cutoff;
-  $('fin-label').textContent = n.cutoffLabel;
+function rellenar(p) {
+  const n = niveles.find((x) => x.id === $(p + 'etapa').value);
+  $(p + 'umbral').value = n.threshold;
+  $(p + 'fin').value = n.cutoff;
+  $(p + 'fin-label').textContent = n.cutoffLabel;
 }
 
 // ---------- Resultados ----------
 
+const msg = (e) => (e && e.message ? e.message : String(e));
 const num = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
 
-function calcular() {
-  error('');
+// Devuelve null si va bien, o el mensaje de error.
+function calcular(prefijo) {
+  ajustes = { fin: $(prefijo + 'fin').value, umbral: Number($(prefijo + 'umbral').value) };
   try {
     resultado = JSON.parse(FaltasWeb.calcular(
-      raw(datos.schedule), raw(datos.calendar), raw(datos.absences),
-      $('fin').value, hoy, Number($('umbral').value)));
+      raw(datos.schedule), raw(datos.calendar), raw(datos.absences), ajustes.fin, hoy, ajustes.umbral));
   } catch (e) {
-    error('No se han podido calcular las faltas: ' + (e && e.message ? e.message : e));
-    return;
+    return msg(e);
   }
   pintarResultados();
   mostrar('resultados');
+  return null;
+}
+
+// ---------- Consulta a iPasen (vía Worker) ----------
+
+const parse = (html) => new DOMParser().parseFromString(String(html), 'text/html');
+const ILEGIBLE = 'iPasen ha cambiado o no se pudo leer: ';
+
+async function consultar() {
+  const boton = $('c-enviar');
+  error('');
+  boton.disabled = true;
+  $('c-estado').textContent = 'Conectando con iPasen…';
+  let respuesta = null;
+  try {
+    const r = await fetch(WORKER_URL + '/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario: $('c-usuario').value.trim(), clave: $('c-clave').value }),
+    });
+    respuesta = await r.json();
+  } catch (e) {
+    respuesta = null;
+  }
+  $('c-estado').textContent = '';
+  boton.disabled = false;
+  if (!respuesta || typeof respuesta !== 'object') {
+    error('No se pudo conectar con el servidor. Comprueba tu conexión.');
+    return;
+  }
+  if (!respuesta.ok) {
+    error(typeof respuesta.message === 'string' && respuesta.message ? respuesta.message : 'iPasen no ha respondido como se esperaba.');
+    return;
+  }
+  let fallo = null;
+  try {
+    datos = {
+      schedule: readSchedule(parse(respuesta.schedule)),
+      calendar: readCalendar(String(respuesta.calendar)),
+      absences: readAbsences(parse(respuesta.absences)),
+    };
+    fallo = calcular('c-');
+  } catch (e) {
+    fallo = msg(e);
+  }
+  if (fallo) {
+    error(ILEGIBLE + fallo);
+    return;
+  }
+  origen = 'consulta';
+  $('c-clave').value = '';
+}
+
+function nueva() {
+  error('');
+  $('c-clave').value = '';
+  if (origen === 'marcador') formulario(); else mostrar('bienvenida');
 }
 
 function pintarResultados() {
   const r = resultado;
-  const umbral = Number($('umbral').value);
+  const umbral = ajustes.umbral;
   $('total').textContent = r.global.percentText;
   $('total-detalle').textContent = num(r.global.absentHours) + ' h de ' + num(r.global.courseHours) +
     ' h · ' + r.lectivoDaysElapsed + ' de ' + r.lectivoDaysTotal + ' días lectivos';
@@ -178,9 +247,16 @@ function pintarHistorial() {
 
 // ---------- Arranque ----------
 
-$('etapa').addEventListener('change', rellenar);
-$('vista-datos').addEventListener('submit', (e) => { e.preventDefault(); calcular(); });
-$('cambiar').addEventListener('click', formulario);
+$('etapa').addEventListener('change', () => rellenar(''));
+$('c-etapa').addEventListener('change', () => rellenar('c-'));
+$('vista-datos').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = calcular('');
+  if (f) error('No se han podido calcular las faltas: ' + f);
+  else error('');
+});
+$('vista-consulta').addEventListener('submit', (e) => { e.preventDefault(); consultar(); });
+$('cambiar').addEventListener('click', nueva);
 $('historial-btn').addEventListener('click', historial);
 $('volver').addEventListener('click', () => mostrar('resultados'));
 $('filtro').addEventListener('change', pintarHistorial);

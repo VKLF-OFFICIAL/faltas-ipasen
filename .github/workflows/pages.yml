@@ -4,7 +4,7 @@ name: Pages
 on:
   push:
     branches: [master]
-    paths: ["web/**", "shared/**", "scraper/**", ".github/workflows/pages.yml"]
+    paths: ["web/**", "shared/**", "scraper/**", "worker/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -36,6 +36,7 @@ jobs:
       - run: ./gradlew --no-daemon :shared:allTests
       - run: cd scraper/readers && npm ci && npm test
       - run: cd web && npm ci && npm test
+      - run: (cd worker && npm ci && npm test)
       - run: ./gradlew --no-daemon :shared:jsBrowserProductionLibraryDistribution
       - name: Montar web/
         run: |

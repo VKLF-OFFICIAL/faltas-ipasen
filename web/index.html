@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Faltas iPasen</title>
-<meta name="description" content="Calcula tu porcentaje de faltas por módulo a partir de iPasen, antes de que superes el límite. Sin servidor: tus datos no salen de tu navegador.">
+<meta name="description" content="Calcula tu porcentaje de faltas por módulo a partir de iPasen, antes de que superes el límite. Consulta con tu usuario de iPasen o usa el marcador para no enviar tu clave.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%233949AB'/%3E%3Cpath d='M12 13h16M12 20h10M12 27h6' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,43 +20,54 @@
 
   <div id="error" class="error" role="alert" hidden></div>
 
-  <!-- Bienvenida -->
+  <!-- Bienvenida / consulta -->
   <div id="vista-bienvenida" hidden>
     <h1>Sabe cuántas faltas llevas antes de que sea tarde</h1>
     <p class="lead">Lee tus faltas de iPasen y calcula el porcentaje de cada módulo o asignatura frente al límite de tu etapa.</p>
+
+    <form id="vista-consulta" class="card" autocomplete="on">
+      <h2>Consulta tus faltas</h2>
+      <div class="field"><label for="c-etapa">Etapa</label><select id="c-etapa"></select></div>
+      <div class="field"><label for="c-umbral">Umbral de faltas (%)</label><input id="c-umbral" type="number" min="1" max="100" step="0.5" required></div>
+      <div class="field"><label for="c-fin" id="c-fin-label">Fecha de fin</label><input id="c-fin" type="date" required></div>
+      <div class="field"><label for="c-usuario">Usuario iPasen</label><input id="c-usuario" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+      <div class="field"><label for="c-clave">Clave</label><input id="c-clave" name="password" type="password" autocomplete="current-password" required></div>
+      <button id="c-enviar" class="btn btn-primary" type="submit">Ver mis faltas</button>
+      <p id="c-estado" class="small" role="status" aria-live="polite"></p>
+      <p class="small">Tu usuario y tu clave se envían a iPasen a través de nuestro servidor solo para esta consulta; no se guardan en ningún sitio.</p>
+    </form>
+
     <div class="actions">
-      <a class="btn btn-primary" href="https://seneca.juntadeandalucia.es/seneca/jsp/portalpasen/" target="_blank" rel="noopener">Abrir iPasen</a>
+      <a class="btn btn-ghost" href="https://seneca.juntadeandalucia.es/seneca/jsp/portalpasen/" target="_blank" rel="noopener">Abrir iPasen</a>
       <a class="btn btn-ghost" href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/releases/latest/download/faltas-ipasen.apk">Descargar la app Android</a>
     </div>
 
     <section>
-      <h2>Cómo funciona</h2>
-      <ol class="steps">
-        <li>Instala el marcador “Faltas iPasen” (más abajo), una sola vez.</li>
-        <li>Entra en iPasen con tu usuario, como siempre.</li>
-        <li>Pulsa el marcador. Lee tu horario, el calendario y tus faltas, y te trae aquí con los datos.</li>
-        <li>Elige tu etapa y mira tu porcentaje por módulo.</li>
-      </ol>
-      <p class="note">Tu contraseña no pasa por esta web: el marcador se ejecuta dentro de iPasen con tu sesión abierta, y los datos viajan solo en tu navegador. No hay servidor.</p>
-    </section>
-
-    <section>
-      <h2>Instalar el marcador</h2>
-      <h3>En ordenador</h3>
-      <p>Arrastra este botón a la barra de marcadores de tu navegador:</p>
-      <p><a id="marcador" class="btn btn-primary drag" href="#">Faltas iPasen</a></p>
-      <h3>En Chrome u Opera en Android</h3>
-      <ol class="steps">
-        <li>Pulsa “Copiar código del marcador”.</li>
-        <li>Guarda cualquier página como marcador (menú ⋮ → estrella).</li>
-        <li>Edita ese marcador: pon de nombre “Faltas iPasen” y pega el código en la URL.</li>
-        <li>Para usarlo, abre iPasen, escribe “Faltas iPasen” en la barra de direcciones y toca el marcador de la lista.</li>
-      </ol>
-      <p><button id="copiar" type="button" class="btn btn-ghost">Copiar código del marcador</button> <span id="copiado" class="small" role="status"></span></p>
+      <details>
+        <summary>Alternativa sin enviar tu clave a nuestro servidor: marcador</summary>
+        <p class="note">Tu contraseña no pasa por esta web ni por nuestro servidor: el marcador se ejecuta dentro de iPasen con tu sesión abierta, y los datos viajan solo en tu navegador.</p>
+        <ol class="steps">
+          <li>Instala el marcador “Faltas iPasen” (más abajo), una sola vez.</li>
+          <li>Entra en iPasen con tu usuario, como siempre.</li>
+          <li>Pulsa el marcador. Lee tu horario, el calendario y tus faltas, y te trae aquí con los datos.</li>
+          <li>Elige tu etapa y mira tu porcentaje por módulo.</li>
+        </ol>
+        <h3>En ordenador</h3>
+        <p>Arrastra este botón a la barra de marcadores de tu navegador:</p>
+        <p><a id="marcador" class="btn btn-primary drag" href="#">Faltas iPasen</a></p>
+        <h3>En Chrome u Opera en Android</h3>
+        <ol class="steps">
+          <li>Pulsa “Copiar código del marcador”.</li>
+          <li>Guarda cualquier página como marcador (menú ⋮ → estrella).</li>
+          <li>Edita ese marcador: pon de nombre “Faltas iPasen” y pega el código en la URL.</li>
+          <li>Para usarlo, abre iPasen, escribe “Faltas iPasen” en la barra de direcciones y toca el marcador de la lista.</li>
+        </ol>
+        <p><button id="copiar" type="button" class="btn btn-ghost">Copiar código del marcador</button> <span id="copiado" class="small" role="status"></span></p>
+      </details>
     </section>
   </div>
 
-  <!-- Formulario -->
+  <!-- Formulario (flujo del marcador) -->
   <form id="vista-datos" hidden>
     <h1>Tus datos</h1>
     <p class="lead">Ya tengo tu horario, el calendario y tus faltas. Elige tu etapa para calcular el porcentaje.</p>
@@ -69,7 +80,7 @@
   <!-- Resultados -->
   <div id="vista-resultados" hidden>
     <div class="actions top">
-      <button id="cambiar" type="button" class="btn btn-ghost">Cambiar mis datos</button>
+      <button id="cambiar" type="button" class="btn btn-ghost">Nueva consulta</button>
       <button id="historial-btn" type="button" class="btn btn-ghost">Ver historial</button>
     </div>
     <div class="card">
@@ -90,7 +101,7 @@
   </div>
 
   <footer>
-    No es una app oficial ni está relacionada con la Junta de Andalucía. Tus faltas no salen de tu navegador: no hay servidor.
+    No es una app oficial ni está relacionada con la Junta de Andalucía. Si consultas con tu usuario, tus datos pasan por nuestro servidor solo durante la consulta y no se guardan; con el marcador no pasan por ningún servidor.
     · <a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/blob/master/LICENSE">Licencia no comercial</a>
     · <a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen">Código</a>
   </footer>
