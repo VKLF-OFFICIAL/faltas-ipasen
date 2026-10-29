@@ -55,3 +55,31 @@ test('a blocked user is LOCKED', async () => {
   const { fetchImpl } = fakeSeneca({ correcto: 'NO', mensaje: 'Usuario bloqueado' });
   await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'LOCKED');
 });
+
+test('a redirect to another host is refused and that host is never fetched', async () => {
+  const hosts = [];
+  const fetchImpl = async (url) => {
+    hosts.push(new URL(String(url)).host);
+    const u = String(url);
+    if (u === `${BASE}/jsp/portalpasen/`) return new Response('x', { status: 302, headers: { location: 'https://evil.example/', 'set-cookie': 'JSESSIONID=abc; Path=/' } });
+    return new Response('evil', { status: 200 });
+  };
+  await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'UPSTREAM_ERROR' && /no permitido/.test(e.message));
+  assert.ok(!hosts.includes('evil.example'));
+});
+
+test('a login reply without <correcto> is UPSTREAM_ERROR, not LOGIN_FAILED', async () => {
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    if (u.includes('ComprobarUsuarioExt.jsp')) return new Response('<html>mantenimiento</html>', { status: 200 });
+    return new Response('ok', { status: 200 });
+  };
+  await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'UPSTREAM_ERROR' && /como se esperaba/.test(e.message));
+});
+
+test('a timed out upstream is UPSTREAM_ERROR and requests carry a signal', async () => {
+  let signal;
+  const fetchImpl = async (url, init) => { signal = init.signal; throw new DOMException('timeout', 'TimeoutError'); };
+  await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'UPSTREAM_ERROR' && /tarda demasiado/.test(e.message));
+  assert.ok(signal instanceof AbortSignal);
+});

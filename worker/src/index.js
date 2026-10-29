@@ -36,16 +36,22 @@ export default {
     if (request.method !== 'POST') return json({ ok: false, code: 'BAD_REQUEST', message: 'usa POST' }, 405, allowed);
 
     if (env && env.SYNC_LIMIT) {
-      const { success } = await env.SYNC_LIMIT.limit({ key: request.headers.get('cf-connecting-ip') || 'local' });
+      const { success } = await env.SYNC_LIMIT.limit({ key: request.headers.get('cf-connecting-ip') || (env && env.clientIp) || 'local' });
       if (!success) return json({ ok: false, code: 'RATE_LIMITED', message: 'Demasiados intentos. Espera un minuto.' }, 429, allowed);
     }
 
     let body;
     try { body = await request.json(); } catch { body = {}; }
+    if (!body || typeof body !== 'object') body = {};
     const usuario = typeof body.usuario === 'string' ? body.usuario.trim() : '';
     const clave = typeof body.clave === 'string' ? body.clave : '';
     if (!usuario || !clave || usuario.length > 100 || clave.length > 200) {
       return json({ ok: false, code: 'BAD_REQUEST', message: 'Escribe tu usuario y tu clave de iPasen.' }, 400, allowed);
+    }
+
+    if (env && env.USER_LIMIT) {
+      const { success } = await env.USER_LIMIT.limit({ key: usuario.toLowerCase() });
+      if (!success) return json({ ok: false, code: 'RATE_LIMITED', message: 'Demasiados intentos con este usuario. Espera unos minutos.' }, 429, allowed);
     }
 
     try {

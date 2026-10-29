@@ -24,3 +24,26 @@ test('rate limited requests are refused', async () => {
   assert.equal(res.status, 429);
   assert.equal((await res.json()).code, 'RATE_LIMITED');
 });
+
+test('per-user limit refuses with 429 and is keyed by lower-cased username', async () => {
+  const keys = [];
+  const e = { USER_LIMIT: { limit: async ({ key }) => { keys.push(key); return { success: false }; } } };
+  const res = await worker.fetch(req('POST', { usuario: '  AbC ', clave: 'b' }), e);
+  assert.equal(res.status, 429);
+  assert.equal((await res.json()).code, 'RATE_LIMITED');
+  assert.deepEqual(keys, ['abc']);
+});
+
+test('a JSON null body is BAD_REQUEST with CORS, not a crash', async () => {
+  const r = new Request('https://w.example/sync', { method: 'POST', headers: { origin: 'https://vklf-official.github.io' }, body: 'null' });
+  const res = await worker.fetch(r, env);
+  assert.equal(res.status, 400);
+  assert.equal(res.headers.get('access-control-allow-origin'), 'https://vklf-official.github.io');
+});
+
+test('env.clientIp keys the IP limiter when cf-connecting-ip is absent', async () => {
+  const keys = [];
+  const e = { clientIp: '1.2.3.4', SYNC_LIMIT: { limit: async ({ key }) => { keys.push(key); return { success: true }; } } };
+  await worker.fetch(req('POST', { usuario: '' }), e);
+  assert.deepEqual(keys, ['1.2.3.4']);
+});

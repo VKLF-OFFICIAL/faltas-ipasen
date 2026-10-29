@@ -2,6 +2,7 @@ import { cifrar } from './cifrar.js';
 import { latin1, menuEntries, findEntry } from './html.js';
 
 const BASE = 'https://seneca.juntadeandalucia.es/seneca';
+const ORIGIN = 'https://seneca.juntadeandalucia.es';
 const UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
 
 // Mismas rutas de menú que el APK (app/src/main/assets/scraper/*.js).
@@ -28,10 +29,19 @@ class Session {
       const headers = { 'user-agent': UA, accept: 'text/html,application/xhtml+xml,*/*' };
       if (this.cookies.size) headers.cookie = [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
       if (body !== undefined) headers['content-type'] = 'application/x-www-form-urlencoded';
-      const res = await this.fetchImpl(target, { method, headers, body, redirect: 'manual' });
+      // Solo Séneca: ni redirecciones ni enlaces del menú pueden sacar las cookies de ahí.
+      if (new URL(target).origin !== ORIGIN) throw new SenecaError('UPSTREAM_ERROR', 'Séneca ha redirigido a un sitio no permitido');
+      let res;
+      try {
+        res = await this.fetchImpl(target, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+      } catch (e) {
+        if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) throw new SenecaError('UPSTREAM_ERROR', 'iPasen tarda demasiado en responder');
+        throw e;
+      }
       this.store(res.headers);
       const location = res.headers.get('location');
       if (res.status >= 300 && res.status < 400 && location) {
+        if (res.body && res.body.cancel) res.body.cancel().catch(() => {});
         target = new URL(location, target).href;
         method = 'GET';
         body = undefined;
@@ -78,6 +88,7 @@ export async function sync(usuario, clave, fetchImpl = (...args) => fetch(...arg
     },
   });
   const correcto = xmlValue(xml, 'correcto');
+  if (!correcto) throw new SenecaError('UPSTREAM_ERROR', 'Séneca no ha respondido como se esperaba');
   const mensaje = xmlValue(xml, 'mensaje') || 'Usuario o clave incorrectos';
   if (correcto !== 'SI') {
     // Nunca se reintenta: Séneca bloquea la cuenta tras varios fallos.
