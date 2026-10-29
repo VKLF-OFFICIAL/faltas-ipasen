@@ -1,7 +1,7 @@
 # Faltas iPasen
 
-App Android que lee tus faltas de asistencia de iPasen (Séneca, Junta de Andalucía) y te dice qué
-porcentaje llevas en cada módulo o asignatura frente al límite de tu etapa, antes de que sea tarde.
+App Android y web que leen tus faltas de asistencia de iPasen (Séneca, Junta de Andalucía) y te dicen
+qué porcentaje llevas en cada módulo o asignatura frente al límite de tu etapa, antes de que sea tarde.
 
 > No es una app oficial ni está relacionada con la Junta de Andalucía. Usa tu propia cuenta de iPasen
 > igual que lo harías desde el navegador.
@@ -22,9 +22,13 @@ porcentaje llevas en cada módulo o asignatura frente al límite de tu etapa, an
 
 ## Privacidad
 
-- Tu usuario y contraseña se guardan cifrados con una clave del Android Keystore y solo se envían a
-  iPasen.
-- Las faltas y el horario se guardan solo en tu móvil. No hay servidores propios ni analítica.
+- **App:** tu usuario y contraseña se guardan cifrados con una clave del Android Keystore y solo se
+  envían a iPasen. Las faltas y el horario se guardan solo en tu móvil.
+- **Web:** no guarda nada. Tu usuario y contraseña pasan por un pequeño servidor propio en Cloudflare
+  (`worker/`) solo para iniciar sesión en iPasen durante esa consulta; no se guardan ni se registran.
+  El cálculo se hace en tu navegador. Si prefieres que la clave no salga de iPasen, la web ofrece un
+  marcador que lee los datos desde tu sesión de iPasen.
+- Sin analítica.
 
 ## Instalar
 
@@ -47,8 +51,10 @@ El release se firma con una clave que no está en el repositorio (ver `app/build
 ## Estructura
 
 - `app/` — app Android (Kotlin, Jetpack Compose). Los scripts que leen iPasen están en `app/src/main/assets/scraper/`.
-- `shared/` — lógica común en Kotlin Multiplatform (cálculo de faltas, umbrales, historial), compartida con la futura versión web.
-- `web/` — página de GitHub Pages.
+- `shared/` — lógica común en Kotlin Multiplatform (cálculo de faltas, umbrales, historial), compilada para el APK y para la web.
+- `scraper/readers/` — lectores de las páginas de iPasen que usa la web.
+- `web/` — la web (GitHub Pages). GitHub Actions compila `shared` a JS y la publica (`.github/workflows/pages.yml`).
+- `worker/` — servidor de Cloudflare que inicia sesión en iPasen para la web (`npx wrangler deploy`).
 - `docs/` — diseño y planes.
 
 ## Licencia

@@ -21,7 +21,15 @@ web y APK viven en el mismo repo y se mantienen a la vez; todo lo que pueda comp
 | APK | Se sigue manteniendo; los cambios deben poder llegar a web y APK |
 | Cloudflare | **Por ahora no.** La web recibe los datos con un marcador (bookmarklet) que se ejecuta dentro de Séneca. El Worker queda como segunda fuente futura |
 
-## Cambio de decisión (2026-10-28, tarde) — manda sobre el resto del documento
+## Estado final (2026-10-29) — manda sobre todo lo demás
+
+Tras probar a quitarlo, el usuario decidió volver a Cloudflare: "metamos cloudflare como decias".
+La web pide etapa, umbral, fecha de fin, usuario y clave y consulta iPasen a través del Worker
+`https://faltas-ipasen.faltas-ipasen-worker.workers.dev` (límites: 10/min por IP, 3/min por usuario).
+El marcador queda como alternativa secundaria en la web (la clave no sale de iPasen). Deno Deploy se
+descartó. En este repo los `push` no disparan Actions: publicar con `gh workflow run pages.yml --ref master`.
+
+## Cambio de decisión (2026-10-28, tarde)
 
 El usuario quiere la web **completamente online**: "que al abrirla te pida la información sobre ti y
 tus datos de iPasen y te dé los resultados, que haga esto cada vez que abres la página". Eligió
