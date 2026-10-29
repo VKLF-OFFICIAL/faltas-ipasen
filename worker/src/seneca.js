@@ -22,7 +22,9 @@ const rnd = (n) => Math.round(Math.random() * n);
 class Session {
   constructor(fetchImpl) { this.fetchImpl = fetchImpl; this.cookies = new Map(); }
 
-  async request(url, { method = 'GET', form } = {}) {
+  // discardBody: solo interesan las cookies (la portada de acceso pesa ~465 KB y decodificarla
+  // gasta CPU que el plan gratuito de Workers no da).
+  async request(url, { method = 'GET', form, discardBody = false } = {}) {
     let target = url;
     let body = form ? new URLSearchParams(form).toString() : undefined;
     for (let hop = 0; hop < 10; hop++) {
@@ -48,6 +50,10 @@ class Session {
         continue;
       }
       if (!res.ok) throw new SenecaError('UPSTREAM_ERROR', `Séneca respondió ${res.status}`);
+      if (discardBody) {
+        if (res.body && res.body.cancel) res.body.cancel().catch(() => {});
+        return '';
+      }
       return latin1(await res.arrayBuffer());
     }
     throw new SenecaError('UPSTREAM_ERROR', 'demasiadas redirecciones de Séneca');
@@ -72,7 +78,7 @@ function xmlValue(xml, tag) {
 // El fetch global no puede llamarse como método de otro objeto en Workers ("Illegal invocation").
 export async function sync(usuario, clave, fetchImpl = (...args) => fetch(...args)) {
   const s = new Session(fetchImpl);
-  await s.request(`${BASE}/jsp/portalpasen/`);
+  await s.request(`${BASE}/jsp/portalpasen/`, { discardBody: true });
 
   const xml = await s.request(`${BASE}/jsp/ComprobarUsuarioExt.jsp`, {
     method: 'POST',
