@@ -1,0 +1,14 @@
+name = "faltas-ipasen"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[[ratelimits]]
+name = "SYNC_LIMIT"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
+# Por usuario de iPasen: evita que alguien bloquee cuentas ajenas probando claves.
+[[ratelimits]]
+name = "USER_LIMIT"
+namespace_id = "1002"
+simple = { limit = 3, period = 60 }

@@ -11,3 +11,4 @@ node_modules/
 web/shared/
 web/readers/
 web/node_modules/
+worker/.wrangler/
