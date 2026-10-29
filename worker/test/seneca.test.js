@@ -83,3 +83,33 @@ test('a timed out upstream is UPSTREAM_ERROR and requests carry a signal', async
   await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'UPSTREAM_ERROR' && /tarda demasiado/.test(e.message));
   assert.ok(signal instanceof AbortSignal);
 });
+
+test('the portal GET is retried once after a timeout and the login still happens once', async () => {
+  const { fetchImpl: ok, calls } = fakeSeneca();
+  let portalCalls = 0;
+  const fetchImpl = async (url, init) => {
+    if (String(url) === `${BASE}/jsp/portalpasen/` && ++portalCalls === 1) throw new DOMException('timeout', 'TimeoutError');
+    return ok(url, init);
+  };
+  const out = await sync('u', 'x', fetchImpl);
+  assert.match(out.absences, /SECCION/);
+  assert.equal(portalCalls, 2);
+  assert.equal(calls.filter((c) => c.url.includes('ComprobarUsuarioExt.jsp')).length, 1);
+});
+
+test('the portal GET is retried once after a 5xx, then gives up', async () => {
+  let portalCalls = 0;
+  const fetchImpl = async () => { portalCalls++; return new Response('x', { status: 503 }); };
+  await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'UPSTREAM_ERROR' && /503/.test(e.message));
+  assert.equal(portalCalls, 2);
+});
+
+test('the login POST is never retried on failure', async () => {
+  const { fetchImpl: ok, calls } = fakeSeneca();
+  const fetchImpl = async (url, init) => {
+    if (String(url).includes('ComprobarUsuarioExt.jsp')) { calls.push({ url: String(url), method: 'POST' }); throw new DOMException('timeout', 'TimeoutError'); }
+    return ok(url, init);
+  };
+  await assert.rejects(sync('u', 'x', fetchImpl), (e) => e.code === 'UPSTREAM_ERROR');
+  assert.equal(calls.filter((c) => c.url.includes('ComprobarUsuarioExt.jsp')).length, 1);
+});

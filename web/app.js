@@ -92,11 +92,11 @@ async function importar(fragmento) {
 function cargarNiveles() {
   if (niveles.length) return;
   niveles = JSON.parse(FaltasWeb.niveles(hoy));
-  const def = niveles.some((n) => n.id === 'FP_SUPERIOR') ? 'FP_SUPERIOR' : niveles[0].id;
   for (const p of ['', 'c-']) {
+    $(p + 'etapa').append(el('option', { value: '' }, 'Elige tu etapa'));
     for (const n of niveles) $(p + 'etapa').append(el('option', { value: n.id }, n.label));
-    $(p + 'etapa').value = def;
-    rellenar(p);
+    $(p + 'etapa').value = '';
+    etapaCambiada(p);
   }
 }
 
@@ -107,11 +107,24 @@ function formulario() {
   mostrar('datos');
 }
 
-function rellenar(p) {
+// Al elegir etapa solo cambia la etiqueta y la pista de la fecha; umbral y fecha los escribe la persona.
+const ddmmyyyy = (iso) => iso.split('-').reverse().join('/');
+
+function etapaCambiada(p) {
   const n = niveles.find((x) => x.id === $(p + 'etapa').value);
-  $(p + 'umbral').value = n.threshold;
-  $(p + 'fin').value = n.cutoff;
-  $(p + 'fin-label').textContent = n.cutoffLabel;
+  $(p + 'fin-label').textContent = n ? n.cutoffLabel : 'Fecha de fin';
+  $(p + 'fin-ayuda').hidden = !n;
+  $(p + 'fin-ayuda').textContent = n ? 'Habitual: ' + ddmmyyyy(n.cutoff) : '';
+}
+
+// Devuelve null si el formulario es correcto, o el mensaje de error.
+function validar(p) {
+  if (!$(p + 'etapa').value) return 'Elige tu etapa.';
+  const u = $(p + 'umbral').value.trim();
+  const umbral = Number(u);
+  if (!u || !Number.isFinite(umbral) || umbral < 1 || umbral > 100) return 'Escribe un umbral de faltas entre 1 y 100 (%).';
+  if (!$(p + 'fin').value) return 'Indica la fecha de fin.';
+  return null;
 }
 
 // ---------- Resultados ----------
@@ -121,6 +134,8 @@ const num = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
 
 // Devuelve null si va bien, o el mensaje de error.
 function calcular(prefijo) {
+  const invalido = validar(prefijo);
+  if (invalido) return invalido;
   ajustes = { fin: $(prefijo + 'fin').value, umbral: Number($(prefijo + 'umbral').value) };
   try {
     resultado = JSON.parse(FaltasWeb.calcular(
@@ -138,28 +153,59 @@ function calcular(prefijo) {
 const parse = (html) => new DOMParser().parseFromString(String(html), 'text/html');
 const ILEGIBLE = 'iPasen ha cambiado o no se pudo leer: ';
 
-async function consultar() {
-  const boton = $('c-enviar');
-  error('');
-  boton.disabled = true;
-  $('c-estado').textContent = 'Conectando con iPasen…';
-  let respuesta = null;
+const ESPERA = 'Conectando con iPasen… (puede tardar hasta un minuto)';
+const LENTO = 'iPasen va lento, reintentando…';
+
+// Una vuelta completa (sesión y tokens nuevos). Devuelve { respuesta } si Séneca contestó con algo
+// definitivo (incluidos LOGIN_FAILED, LOCKED, RATE_LIMITED, BAD_REQUEST y MENU_NOT_FOUND, que nunca se
+// reintentan), o { transitorio: true, mensaje } si fue un fallo de red, un timeout o UPSTREAM_ERROR.
+async function intentoConsulta(cuerpo) {
+  let respuesta;
   try {
     const r = await fetch(WORKER_URL + '/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario: $('c-usuario').value.trim(), clave: $('c-clave').value }),
+      body: cuerpo,
+      signal: AbortSignal.timeout(100000),
     });
     respuesta = await r.json();
   } catch (e) {
-    respuesta = null;
+    return { transitorio: true, mensaje: '' };
+  }
+  if (!respuesta || typeof respuesta !== 'object') return { transitorio: true, mensaje: '' };
+  if (!respuesta.ok && respuesta.code === 'UPSTREAM_ERROR') {
+    return { transitorio: true, mensaje: typeof respuesta.message === 'string' ? respuesta.message : '' };
+  }
+  return { respuesta };
+}
+
+async function consultar() {
+  const boton = $('c-enviar');
+  error('');
+  const invalido = validar('c-');
+  if (invalido) {
+    error(invalido);
+    return;
+  }
+  if (!$('c-usuario').value.trim() || !$('c-clave').value) {
+    error('Escribe tu usuario y tu clave de iPasen.');
+    return;
+  }
+  boton.disabled = true;
+  $('c-estado').textContent = ESPERA;
+  const cuerpo = JSON.stringify({ usuario: $('c-usuario').value.trim(), clave: $('c-clave').value });
+  let res = await intentoConsulta(cuerpo);
+  if (res.transitorio) {
+    $('c-estado').textContent = LENTO;
+    res = await intentoConsulta(cuerpo);
   }
   $('c-estado').textContent = '';
   boton.disabled = false;
-  if (!respuesta || typeof respuesta !== 'object') {
-    error('No se pudo conectar con el servidor. Comprueba tu conexión.');
+  if (res.transitorio) {
+    error('iPasen no responde ahora mismo. Inténtalo de nuevo en unos minutos.' + (res.mensaje ? ' (' + res.mensaje + ')' : ''));
     return;
   }
+  const respuesta = res.respuesta;
   if (!respuesta.ok) {
     error(typeof respuesta.message === 'string' && respuesta.message ? respuesta.message : 'iPasen no ha respondido como se esperaba.');
     return;
@@ -181,11 +227,33 @@ async function consultar() {
   }
   origen = 'consulta';
   $('c-clave').value = '';
+  ocultarClave();
+}
+
+// ---------- Ver / ocultar la clave ----------
+
+function ocultarClave() {
+  $('c-clave').type = 'password';
+  $('c-ver').textContent = 'Ver';
+  $('c-ver').setAttribute('aria-pressed', 'false');
+  $('c-ver').setAttribute('aria-label', 'Mostrar la clave');
+}
+
+function alternarClave() {
+  if ($('c-clave').type === 'password') {
+    $('c-clave').type = 'text';
+    $('c-ver').textContent = 'Ocultar';
+    $('c-ver').setAttribute('aria-pressed', 'true');
+    $('c-ver').setAttribute('aria-label', 'Ocultar la clave');
+  } else {
+    ocultarClave();
+  }
 }
 
 function nueva() {
   error('');
   $('c-clave').value = '';
+  ocultarClave();
   if (origen === 'marcador') formulario(); else mostrar('bienvenida');
 }
 
@@ -241,19 +309,22 @@ function pintarHistorial() {
       ...entradas.map((e) => el('div', { class: 'entrada' },
         el('span', { class: 'small' }, e.tramo),
         el('span', {}, e.label + ' · ' + num(e.hours) + ' h'),
-        el('span', { class: e.justified ? 'just-si' : 'just-no' }, (e.late ? 'Retraso · ' : '') + (e.justified ? 'Justificada' : 'Sin justificar'))))));
+        el('span', { class: e.justified ? 'just-si' : 'just-no' }, e.justified ? 'Justificada' : 'Sin justificar')))));
   }
   $('dias').replaceChildren(...(dias.length ? dias : [el('p', { class: 'small' }, 'No hay faltas que mostrar.')]));
 }
 
 // ---------- Arranque ----------
 
-$('etapa').addEventListener('change', () => rellenar(''));
-$('c-etapa').addEventListener('change', () => rellenar('c-'));
+$('etapa').addEventListener('change', () => etapaCambiada(''));
+$('c-etapa').addEventListener('change', () => etapaCambiada('c-'));
+$('c-ver').addEventListener('click', alternarClave);
 $('vista-datos').addEventListener('submit', (e) => {
   e.preventDefault();
-  const f = calcular('');
-  if (f) error('No se han podido calcular las faltas: ' + f);
+  const invalido = validar('');
+  const f = invalido ? null : calcular('');
+  if (invalido) error(invalido);
+  else if (f) error('No se han podido calcular las faltas: ' + f);
   else error('');
 });
 $('vista-consulta').addEventListener('submit', (e) => { e.preventDefault(); consultar(); });

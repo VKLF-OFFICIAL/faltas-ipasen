@@ -17,6 +17,9 @@ export class SenecaError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 
+// Séneca a veces tarda más de 20 s en contestar.
+const TIMEOUT_MS = 30000;
+
 const rnd = (n) => Math.round(Math.random() * n);
 
 class Session {
@@ -35,7 +38,7 @@ class Session {
       if (new URL(target).origin !== ORIGIN) throw new SenecaError('UPSTREAM_ERROR', 'Séneca ha redirigido a un sitio no permitido');
       let res;
       try {
-        res = await this.fetchImpl(target, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+        res = await this.fetchImpl(target, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
       } catch (e) {
         if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) throw new SenecaError('UPSTREAM_ERROR', 'iPasen tarda demasiado en responder');
         throw e;
@@ -75,10 +78,23 @@ function xmlValue(xml, tag) {
   return m ? m[1].trim() : '';
 }
 
+// La portada es un GET sin efectos: se reintenta una vez si hay timeout, fallo de red o 5xx. El login y
+// los POST del menú no se reintentan nunca (bloqueo de cuenta, tokens de un solo uso).
+async function portada(s) {
+  const url = `${BASE}/jsp/portalpasen/`;
+  try {
+    await s.request(url, { discardBody: true });
+  } catch (e) {
+    const transitorio = !(e instanceof SenecaError) || /tarda demasiado|respondió 5[0-9][0-9]/.test(e.message);
+    if (!transitorio) throw e;
+    await s.request(url, { discardBody: true });
+  }
+}
+
 // El fetch global no puede llamarse como método de otro objeto en Workers ("Illegal invocation").
 export async function sync(usuario, clave, fetchImpl = (...args) => fetch(...args)) {
   const s = new Session(fetchImpl);
-  await s.request(`${BASE}/jsp/portalpasen/`, { discardBody: true });
+  await portada(s);
 
   const xml = await s.request(`${BASE}/jsp/ComprobarUsuarioExt.jsp`, {
     method: 'POST',

@@ -55,3 +55,6 @@ select, input { font: inherit; min-height: 44px; padding: 8px 12px; border-radiu
 .just-si { color: var(--green); } .just-no { color: var(--red); }
 details summary { cursor: pointer; font-weight: 600; }
 footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--outline); color: var(--muted); font-size: 0.875rem; }
+.clave-fila { display: flex; gap: 8px; }
+.clave-fila input { flex: 1; min-width: 0; }
+.ver { flex: none; min-width: 84px; padding: 8px 14px; }
