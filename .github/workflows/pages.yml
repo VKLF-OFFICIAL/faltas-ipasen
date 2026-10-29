@@ -1,10 +1,10 @@
 name: Pages
-# Publica web/ en GitHub Pages.
+# Prueba y publica web/ en GitHub Pages (con shared/ compilado a JS y los lectores de scraper/).
 
 on:
   push:
     branches: [master]
-    paths: ["web/**", ".github/workflows/pages.yml"]
+    paths: ["web/**", "shared/**", "scraper/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +24,26 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      # settings.gradle.kts incluye :app, cuya configuración exige el SDK de Android.
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: ./gradlew --no-daemon :shared:allTests
+      - run: cd scraper/readers && npm ci && npm test
+      - run: cd web && npm ci && npm test
+      - run: ./gradlew --no-daemon :shared:jsBrowserProductionLibraryDistribution
+      - name: Montar web/
+        run: |
+          mkdir -p web/shared web/readers
+          cp -r shared/build/dist/js/productionLibrary/. web/shared/
+          cp scraper/readers/readers.mjs web/readers/
+          rm -rf web/dev.sh web/test web/node_modules web/package.json web/package-lock.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

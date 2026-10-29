@@ -1,0 +1,7 @@
+{
+  "name": "faltas-ipasen-web",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "devDependencies": { "linkedom": "0.18.12" }
+}
