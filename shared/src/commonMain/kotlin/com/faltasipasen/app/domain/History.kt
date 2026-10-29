@@ -10,7 +10,6 @@ data class HistoryEntry(
     val name: String,
     val hours: Double,
     val justified: Boolean,
-    val late: Boolean = false,
 ) {
     val label: String get() = abbreviation.ifEmpty { name.ifEmpty { subjectKey } }
 }
@@ -38,7 +37,6 @@ object HistoryBuilder {
                     name = absence.name.ifEmpty { slots.firstOrNull { it.name.isNotEmpty() }?.name.orEmpty() },
                     hours = absence.hours,
                     justified = absence.justified,
-                    late = absence.late,
                 )
             }
             .groupBy { it.date }

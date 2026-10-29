@@ -1,5 +1,5 @@
 // Faltas de asistencia > Consulta, filter "Todas": Fecha | Tramo horario | Ausencia de | Estado.
-// "Retraso" rows are late arrivals: emitted with late: true (the app counts them as half an absence).
+// "Retraso" rows are late arrivals, not absences, so they are skipped.
 // A row in an unknown format is set aside in `skipped` (shown to the user) instead of failing the
 // sync; only a changed table (columns, filter, row count) fails it, because then every figure is wrong.
 run(async function () {
@@ -34,8 +34,7 @@ run(async function () {
     rowsRead++;
     var text = function (column) { return row.cells[column].innerText.replace(/\s+/g, ' ').trim(); };
     var state = text(col.state).toLowerCase();
-    var late = state.indexOf('retraso') >= 0;
-    var justified = late ? /justificad/i.test(state) && !/injustificad/i.test(state) : state.indexOf('justificada') === 0;
+    if (state.indexOf('retraso') >= 0) return;
     var tramo = text(col.tramo);
     try {
       // "Día completo" rows have no subject; the app spreads them over that day's timetable.
@@ -44,20 +43,18 @@ run(async function () {
           date: toIsoDate(text(col.date)),
           subject: '',
           fullDay: true,
-          justified: justified,
+          justified: state.indexOf('justificada') === 0,
           tramo: tramo,
         });
         return;
       }
-      var row = {
+      absences.push({
         date: toIsoDate(text(col.date)),
         subject: text(col.subject),
         hours: tramoHours(tramo),
-        justified: justified,
+        justified: state.indexOf('justificada') === 0,
         tramo: tramo,
-      };
-      if (late) row.late = true;
-      absences.push(row);
+      });
     } catch (e) {
       skipped.push([text(col.date), tramo, text(col.subject), text(col.state)].join(' | ') + ': ' + (e && e.message ? e.message : e));
     }

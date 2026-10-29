@@ -30,7 +30,6 @@ data class Absence(
     val justified: Boolean,
     val tramo: String = "",
     val name: String = "",
-    val late: Boolean = false,
 )
 
 data class Credentials(val username: String, val password: String)

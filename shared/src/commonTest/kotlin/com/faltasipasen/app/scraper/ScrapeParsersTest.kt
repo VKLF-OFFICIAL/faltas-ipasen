@@ -162,24 +162,4 @@ class ScrapeParsersTest {
         val raw = """{"ok":true,"data":[{"subject":"   ","day":1}]}"""
         assertEquals(ScrapeException.Reason.PARSE_ERROR, reasonOf { ScrapeParsers.parseSchedule(raw) })
     }
-
-    @Test
-    fun `a late row counts half its hours and keeps the late flag`() {
-        val raw = """{"ok":true,"data":{"absences":[{"date":"2026-10-02","subject":"Redes","hours":1,"justified":false,"tramo":"8:15 - 9:15","late":true},{"date":"2026-10-03","subject":"Redes","hours":1.5,"late":true,"justified":true},{"date":"2026-10-04","subject":"Redes","hours":1}]}}"""
-        val absences = ScrapeParsers.parseAbsences(raw).absences
-        assertEquals(0.5, absences[0].hours, 1e-9)
-        assertTrue(absences[0].late)
-        assertEquals(0.75, absences[1].hours, 1e-9)
-        assertEquals(1.0, absences[2].hours, 1e-9)
-        assertEquals(false, absences[2].late)
-    }
-
-    @Test
-    fun `a full day row is never late`() {
-        val schedule = listOf(ScheduleSlot("REDES", 2, 1.0, "SRI", "Redes"))
-        val raw = """{"ok":true,"data":{"absences":[{"date":"2026-10-06","subject":"","fullDay":true,"late":true,"justified":false}]}}"""
-        val absences = ScrapeParsers.parseAbsences(raw, schedule).absences
-        assertEquals(1.0, absences.single().hours, 1e-9)
-        assertEquals(false, absences.single().late)
-    }
 }

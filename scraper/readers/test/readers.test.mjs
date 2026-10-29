@@ -32,12 +32,11 @@ test('readSchedule fails on a page without the timetable', () => {
   assert.throws(() => readSchedule(doc('faltas-vacia.html')), /tablas de horario y materias/);
 });
 
-test('readAbsences reads rows, flags late arrivals and sets aside unreadable rows', () => {
+test('readAbsences reads rows, skips late arrivals and sets aside unreadable rows', () => {
   const read = readAbsences(doc('faltas.html'));
   assert.deepEqual(read.absences, [
     { date: '2026-10-13', subject: 'Servicios de red e Internet', hours: 1, justified: false, tramo: '8:15 - 9:15' },
     { date: '2026-10-13', subject: 'Servicios de red e Internet', hours: 1, justified: true, tramo: '9:15 - 10:15' },
-    { date: '2026-10-14', subject: 'Implantación de aplicaciones web', hours: 1, justified: false, tramo: '8:15 - 9:15', late: true },
     { date: '2026-10-20', subject: '', fullDay: true, justified: true, tramo: 'Día completo' },
   ]);
   assert.equal(read.skipped.length, 1);
@@ -96,14 +95,14 @@ test('readAbsences ignores rows of a table nested inside a cell', () => {
   );
   const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
   assert.deepEqual(read, readAbsences(doc('faltas.html')));
-  assert.equal(read.absences.length, 4);
+  assert.equal(read.absences.length, 3);
   assert.equal(read.skipped.length, 1);
 });
 
 test('readAbsences reads the Registros count from block elements, not glued digits', () => {
   const html = fixture('faltas.html').replace('<p>Registros: 5</p>', '<section>Registros: 5</section><section>0</section>');
   const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
-  assert.equal(read.absences.length, 4);
+  assert.equal(read.absences.length, 3);
   assert.equal(read.skipped.length, 1);
 });
 
@@ -111,7 +110,7 @@ test('readAbsences ignores script and style text in the Registros count', () => 
   const html = fixture('faltas.html')
     .replace('<body>', '<body><script>var s = "Registros: 99";</script><style>p::after{content:"Registros: 7"}</style>');
   const read = readAbsences(new DOMParser().parseFromString(html, 'text/html'));
-  assert.equal(read.absences.length, 4);
+  assert.equal(read.absences.length, 3);
   assert.equal(read.skipped.length, 1);
 });
 
