@@ -131,4 +131,15 @@ class AbsenceCalculatorTest {
     fun `justified hours are absent minus unjustified`() {
         assertEquals(1.0, calc().global.justifiedHours, 1e-9)
     }
+
+    @Test
+    fun `two late arrivals of one hour add one hour of absence`() {
+        val lates = listOf(
+            Absence(LocalDate(2026, 9, 14), "BD", 0.5, false, late = true),
+            Absence(LocalDate(2026, 9, 21), "BD", 0.5, false, late = true),
+        )
+        val stats = calc(absences = lates)
+        assertEquals(1.0, stats.subject("BD").absentHours, 1e-9)
+        assertEquals(1.0, stats.subject("BD").unjustifiedHours, 1e-9)
+    }
 }

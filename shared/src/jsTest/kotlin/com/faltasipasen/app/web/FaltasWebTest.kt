@@ -42,4 +42,14 @@ class FaltasWebTest {
         }
         assertTrue(e.message!!.contains("asignatura vacía"))
     }
+
+    @Test
+    fun calcularMarksLateEntriesAndHalvesTheirHours() {
+        val late = """{"ok":true,"data":{"absences":[{"date":"2026-09-14","subject":"Redes","hours":1,"justified":false,"tramo":"8:15 - 9:15","late":true},{"date":"2026-09-21","subject":"Redes","hours":1,"justified":false,"tramo":"8:15 - 9:15"}]}}"""
+        val out = JSON.parse<dynamic>(FaltasWeb.calcular(schedule, calendar, late, "2027-02-15", "2026-09-30", 15.0))
+        assertEquals(1.5, out.subjects[0].absentHours)
+        assertEquals(false, out.history[0].entries[0].late)
+        assertEquals(true, out.history[1].entries[0].late)
+        assertEquals(0.5, out.history[1].entries[0].hours)
+    }
 }

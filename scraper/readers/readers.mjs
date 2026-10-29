@@ -103,7 +103,7 @@ export function readSchedule(doc) {
 }
 
 // Faltas de asistencia > Consulta, filtro "Todas": Fecha | Tramo horario | Ausencia de | Estado.
-// Los "Retraso" no son faltas. Una fila ilegible se aparta en `skipped`; una tabla cambiada (columnas,
+// Los "Retraso" se emiten con late: true (la app los cuenta como media falta). Una fila ilegible se aparta en `skipped`; una tabla cambiada (columnas,
 // filtro, número de filas) hace fallar la lectura porque entonces todas las cifras serían erróneas.
 export function readAbsences(doc) {
   const bodyText = doc.body ? flatText(doc.body).replace(/\s+/g, ' ').trim() : '';
@@ -136,21 +136,24 @@ export function readAbsences(doc) {
     rowsRead++;
     const text = (i) => cellText(c[i]);
     const state = text(col.state).toLowerCase();
-    if (state.indexOf('retraso') >= 0) return;
+    const late = state.indexOf('retraso') >= 0;
+    const justified = late ? /justificad/i.test(state) && !/injustificad/i.test(state) : state.indexOf('justificada') === 0;
     const tramo = text(col.tramo);
     try {
       // "Día completo" no lleva materia; la app la reparte por el horario de ese día.
       if (/^d[ií]a completo$/i.test(tramo)) {
-        absences.push({ date: toIsoDate(text(col.date)), subject: '', fullDay: true, justified: state.indexOf('justificada') === 0, tramo });
+        absences.push({ date: toIsoDate(text(col.date)), subject: '', fullDay: true, justified, tramo });
         return;
       }
-      absences.push({
+      const row = {
         date: toIsoDate(text(col.date)),
         subject: text(col.subject),
         hours: tramoHours(tramo),
-        justified: state.indexOf('justificada') === 0,
+        justified,
         tramo,
-      });
+      };
+      if (late) row.late = true;
+      absences.push(row);
     } catch (e) {
       skipped.push([text(col.date), tramo, text(col.subject), text(col.state)].join(' | ') + ': ' + (e && e.message ? e.message : e));
     }

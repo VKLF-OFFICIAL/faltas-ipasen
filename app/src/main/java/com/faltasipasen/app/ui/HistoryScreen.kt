@@ -117,6 +117,7 @@ private fun HistoryRow(entry: HistoryEntry) {
             }
             Spacer(Modifier.width(12.dp))
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (entry.late) StatusChip("Retraso", MaterialTheme.colorScheme.onSurfaceVariant)
                 if (entry.justified) StatusChip("Justificada", risk.low) else StatusChip("Injustificada", risk.high)
                 Text(formatHours(entry.hours), style = MaterialTheme.typography.labelMedium.merge(Tabular))
             }

@@ -30,6 +30,7 @@ private data class AbsenceDto(
     val justified: Boolean = false,
     val tramo: String = "",
     val fullDay: Boolean = false,
+    val late: Boolean = false,
 )
 
 @Serializable
@@ -85,10 +86,12 @@ object ScrapeParsers {
                     Absence(
                         date = date,
                         subject = subject(row.subject, STEP_ABSENCES),
-                        hours = hours(row.hours, STEP_ABSENCES),
+                        // Dos retrasos cuentan como una falta: la mitad se aplica aquí, en un único sitio.
+                        hours = hours(row.hours, STEP_ABSENCES).let { if (row.late) it / 2 else it },
                         justified = row.justified,
                         tramo = row.tramo.trim(),
                         name = displayName(row.subject),
+                        late = row.late,
                     ),
                 )
             } catch (e: ScrapeException) {

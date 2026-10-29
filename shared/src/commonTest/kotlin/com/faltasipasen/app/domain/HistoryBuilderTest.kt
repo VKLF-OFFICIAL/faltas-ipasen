@@ -80,4 +80,13 @@ class HistoryBuilderTest {
         assertEquals(1, result.size)
         assertEquals(2, result.single().entries.size)
     }
+
+    @Test
+    fun `late entries carry the flag`() {
+        val late = listOf(Absence(LocalDate(2026, 9, 24), "SERVICIOS DE RED E INTERNET", 0.5, false, "9:15 - 10:15", "", late = true))
+        val entry = HistoryBuilder.build(schedule, late, cutoff, today).single().entries.single()
+        assertEquals(true, entry.late)
+        assertEquals(0.5, entry.hours, 1e-9)
+        assertEquals(false, days.flatMap { it.entries }.any { it.late })
+    }
 }

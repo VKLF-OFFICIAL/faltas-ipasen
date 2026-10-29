@@ -2,6 +2,7 @@
 // del marcador) viven solo en memoria y desaparecen al recargar. Nada de iPasen se inserta como HTML.
 import { FaltasWeb } from './shared/shared.mjs';
 import { unpack } from './lib/transfer.mjs';
+import { entradasDe } from './lib/history.mjs';
 import { readSchedule, readCalendar, readAbsences } from './readers/readers.mjs';
 import { WORKER_URL } from './config.js';
 
@@ -233,14 +234,14 @@ function pintarHistorial() {
   const key = $('filtro').value;
   const dias = [];
   for (const dia of resultado.history) {
-    const entradas = dia.entries.filter((e) => !key || e.label === key);
+    const entradas = entradasDe(dia.entries, key);
     if (!entradas.length) continue;
     dias.push(el('div', { class: 'dia' },
       el('h3', {}, capital(fechaLarga.format(new Date(dia.date + 'T00:00:00Z')))),
       ...entradas.map((e) => el('div', { class: 'entrada' },
         el('span', { class: 'small' }, e.tramo),
         el('span', {}, e.label + ' · ' + num(e.hours) + ' h'),
-        el('span', { class: e.justified ? 'just-si' : 'just-no' }, e.justified ? 'Justificada' : 'Sin justificar')))));
+        el('span', { class: e.justified ? 'just-si' : 'just-no' }, (e.late ? 'Retraso · ' : '') + (e.justified ? 'Justificada' : 'Sin justificar'))))));
   }
   $('dias').replaceChildren(...(dias.length ? dias : [el('p', { class: 'small' }, 'No hay faltas que mostrar.')]));
 }

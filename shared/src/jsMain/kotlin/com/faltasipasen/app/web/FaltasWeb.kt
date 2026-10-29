@@ -80,6 +80,7 @@ class FaltasWeb private constructor() {
                                         put("name", e.name)
                                         put("hours", e.hours)
                                         put("justified", e.justified)
+                                        put("late", e.late)
                                     }
                                 }
                             }
