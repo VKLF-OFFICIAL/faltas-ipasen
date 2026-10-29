@@ -29,7 +29,6 @@ jobs:
           distribution: temurin
           java-version: "17"
       # settings.gradle.kts incluye :app, cuya configuración exige el SDK de Android.
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-node@v4
         with:
