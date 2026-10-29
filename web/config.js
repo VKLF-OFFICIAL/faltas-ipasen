@@ -1,1 +1,1 @@
-export const WORKER_URL = 'http://localhost:8787';
+export const WORKER_URL = 'https://faltas-ipasen.faltas-ipasen-worker.workers.dev';
