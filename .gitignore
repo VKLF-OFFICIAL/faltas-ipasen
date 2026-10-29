@@ -8,7 +8,6 @@ captures/
 .DS_Store
 graphify-out/
 node_modules/
-worker/.wrangler/
 web/shared/
 web/readers/
 web/node_modules/

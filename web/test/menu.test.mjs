@@ -5,7 +5,7 @@ import { DOMParser } from 'linkedom';
 import { SECTIONS, findEntry, menuLinks, menuPath } from '../lib/menu.mjs';
 
 const doc = new DOMParser().parseFromString(
-  `<html><body>${readFileSync(new URL('../../worker/test/fixtures/menupasen.html', import.meta.url), 'utf8')}</body></html>`, 'text/html');
+  `<html><body>${readFileSync(new URL('./fixtures/menupasen.html', import.meta.url), 'utf8')}</body></html>`, 'text/html');
 const links = menuLinks(doc);
 
 test('hay entradas con ruta completa', () => {

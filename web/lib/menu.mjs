@@ -1,5 +1,5 @@
 // Localiza las entradas del menú PASEN en el DOM. Misma lógica que el APK
-// (app/src/main/assets/scraper/common.js) y que worker/src/seneca.js, versión DOM.
+// (app/src/main/assets/scraper/common.js), versión DOM.
 
 export const SECTIONS = {
   absences: { label: 'Faltas de asistencia > Consulta', paths: [[/faltas/i, /^consulta/i], [/^faltas de asistencia$/i], [/faltas/i, /^(consulta|faltas)/i]] },

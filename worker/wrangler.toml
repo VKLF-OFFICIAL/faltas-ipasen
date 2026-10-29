@@ -1,8 +1,0 @@
-name = "faltas-ipasen"
-main = "src/index.js"
-compatibility_date = "2025-09-01"
-
-[[ratelimits]]
-name = "SYNC_LIMIT"
-namespace_id = "1001"
-simple = { limit = 10, period = 60 }
