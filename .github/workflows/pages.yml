@@ -44,6 +44,10 @@ jobs:
           cp -r shared/build/dist/js/productionLibrary/. web/shared/
           cp scraper/readers/readers.mjs web/readers/
           rm -rf web/dev.sh web/test web/node_modules web/package.json web/package-lock.json
+          # Versión en cada URL para que el navegador nunca mezcle archivos de despliegues distintos.
+          V="${GITHUB_SHA::7}"
+          sed -i -E "s#(src|href)=\"(app\.js|styles\.css)\"#\1=\"\2?v=$V\"#g" web/index.html
+          find web -name '*.js' -o -name '*.mjs' | xargs sed -i -E "s#((from|import)\s*\(?\s*['\"]\./[^'\"?]+\.m?js)(['\"])#\1?v=$V\3#g"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -107,5 +107,18 @@
   </footer>
 </main>
 <script type="module" src="app.js"></script>
+<script>
+  // Si el código de la web no llega a arrancar (caché vieja, navegador antiguo, bloqueador), no dejar
+  // un formulario vacío sin explicación.
+  setTimeout(function () {
+    var select = document.querySelector('form select');
+    if (!select || select.options.length) return;
+    var aviso = document.createElement('p');
+    aviso.setAttribute('role', 'alert');
+    aviso.className = 'aviso-carga';
+    aviso.textContent = 'La web no ha terminado de cargar. Recárgala con Ctrl+F5 (en el móvil, cierra la pestaña y vuelve a abrirla). Si sigue igual, prueba con Chrome o Firefox actualizados.';
+    select.closest('form').prepend(aviso);
+  }, 5000);
+</script>
 </body>
 </html>
