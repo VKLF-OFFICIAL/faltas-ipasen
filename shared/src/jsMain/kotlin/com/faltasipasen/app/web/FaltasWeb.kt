@@ -4,6 +4,7 @@ package com.faltasipasen.app.web
 
 import com.faltasipasen.app.domain.AbsenceCalculator
 import com.faltasipasen.app.domain.AlertFormatter
+import com.faltasipasen.app.domain.Convalidations
 import com.faltasipasen.app.domain.CourseDates
 import com.faltasipasen.app.domain.EducationLevel
 import com.faltasipasen.app.domain.HistoryBuilder
@@ -12,7 +13,11 @@ import com.faltasipasen.app.domain.RiskLevel
 import com.faltasipasen.app.scraper.ScrapeException
 import com.faltasipasen.app.scraper.ScrapeParsers
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
@@ -49,15 +54,18 @@ class FaltasWeb private constructor() {
         cutoffIso: String,
         todayIso: String,
         thresholdPercent: Double,
+        convalidatedJson: String,
     ): String {
         try {
             val cutoff = LocalDate.parse(cutoffIso)
             val today = LocalDate.parse(todayIso)
-            val schedule = ScrapeParsers.parseSchedule(scheduleRaw)
+            val fullSchedule = ScrapeParsers.parseSchedule(scheduleRaw)
             val calendar = ScrapeParsers.parseCalendar(calendarRaw)
-            val read = ScrapeParsers.parseAbsences(absencesRaw, schedule)
-            val result = AbsenceCalculator.calculate(schedule, calendar, read.absences, cutoff, today)
-            val history = HistoryBuilder.build(schedule, read.absences, cutoff, today)
+            val read = ScrapeParsers.parseAbsences(absencesRaw, fullSchedule)
+            val keys = parseKeys(convalidatedJson)
+            val (schedule, absences) = Convalidations.exclude(fullSchedule, read.absences, keys)
+            val result = AbsenceCalculator.calculate(schedule, calendar, absences, cutoff, today)
+            val history = HistoryBuilder.build(schedule, absences, cutoff, today)
             return buildJsonObject {
                 put("global", statsJson(result.global, thresholdPercent))
                 putJsonArray("subjects") { result.subjects.forEach { add(statsJson(it, thresholdPercent)) } }
@@ -66,6 +74,17 @@ class FaltasWeb private constructor() {
                 put("countedUntil", result.countedUntil.toString())
                 put("lectivoDaysElapsed", result.lectivoDaysElapsed)
                 put("lectivoDaysTotal", result.lectivoDaysTotal)
+                putJsonArray("convalidated") {
+                    keys.forEach { key ->
+                        val known = fullSchedule.any { it.subject == key } || read.absences.any { it.subject == key }
+                        if (known) addJsonObject {
+                            put("label", key)
+                            put("abbreviation", fullSchedule.firstOrNull { it.subject == key && it.abbreviation.isNotEmpty() }?.abbreviation.orEmpty())
+                            put("name", fullSchedule.firstOrNull { it.subject == key && it.name.isNotEmpty() }?.name
+                                ?: read.absences.firstOrNull { it.subject == key && it.name.isNotEmpty() }?.name.orEmpty())
+                        }
+                    }
+                }
                 putJsonArray("skipped") { read.skipped.forEach { add(it) } }
                 putJsonArray("history") {
                     history.forEach { day ->
@@ -93,6 +112,12 @@ class FaltasWeb private constructor() {
             throw Error("fecha no válida: ${e.message}")
         }
     }
+
+        private fun parseKeys(json: String): Set<String> {
+            val arr = try { Json.parseToJsonElement(json) as? JsonArray } catch (e: Exception) { null }
+                ?: throw IllegalArgumentException("convalidadas no válidas")
+            return arr.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.toCollection(LinkedHashSet())
+        }
 
         private fun statsJson(s: HoursStats, threshold: Double): JsonObject = buildJsonObject {
         put("label", s.label)

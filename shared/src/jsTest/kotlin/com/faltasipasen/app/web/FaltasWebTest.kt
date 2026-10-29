@@ -12,7 +12,7 @@ class FaltasWebTest {
 
     @Test
     fun calcularReturnsTheSameFiguresAsTheApk() {
-        val out = JSON.parse<dynamic>(FaltasWeb.calcular(schedule, calendar, absences, "2027-02-15", "2026-09-30", 15.0))
+        val out = JSON.parse<dynamic>(FaltasWeb.calcular(schedule, calendar, absences, "2027-02-15", "2026-09-30", 15.0, "[]"))
         // Redes: lunes 14 y 21 → 4 h de curso, 1 h de falta = 25 %.
         assertEquals("REDES", out.subjects[0].label)
         assertEquals(4.0, out.subjects[0].courseHours)
@@ -27,6 +27,19 @@ class FaltasWebTest {
     }
 
     @Test
+    fun convalidatedSubjectIsExcludedAndListed() {
+        val out = JSON.parse<dynamic>(FaltasWeb.calcular(schedule, calendar, absences, "2027-02-15", "2026-09-30", 15.0, """["REDES"]"""))
+        assertEquals(1, out.subjects.length)
+        assertEquals("BASES", out.subjects[0].label)
+        assertEquals(1.0, out.global.courseHours)
+        assertEquals(0.0, out.global.absentHours)
+        assertEquals(0, out.history.length)
+        assertEquals(1, out.convalidated.length)
+        assertEquals("REDES", out.convalidated[0].label)
+        assertEquals("RED", out.convalidated[0].abbreviation)
+    }
+
+    @Test
     fun nivelesGivesTheApkDefaults() {
         val levels = JSON.parse<Array<dynamic>>(FaltasWeb.niveles("2026-10-28"))
         val superior = levels.first { it.id == "FP_SUPERIOR" }
@@ -38,7 +51,7 @@ class FaltasWebTest {
     @Test
     fun parserErrorsBecomeJsErrors() {
         val e = assertFailsWith<Throwable> {
-            FaltasWeb.calcular("""{"ok":true,"data":[{"subject":"","day":1}]}""", calendar, absences, "2027-02-15", "2026-09-30", 15.0)
+            FaltasWeb.calcular("""{"ok":true,"data":[{"subject":"","day":1}]}""", calendar, absences, "2027-02-15", "2026-09-30", 15.0, "[]")
         }
         assertTrue(e.message!!.contains("asignatura vacía"))
     }

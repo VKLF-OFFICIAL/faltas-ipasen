@@ -17,6 +17,7 @@ let datos = null;   // { schedule, calendar, absences }, solo en memoria
 let niveles = [];
 let resultado = null;
 let ajustes = { fin: '', umbral: 0 };
+let convalidadas = []; // claves de módulos convalidados, solo en memoria
 let origen = 'consulta'; // 'consulta' | 'marcador': a dónde vuelve "Nueva consulta"
 
 function mostrar(vista) {
@@ -137,15 +138,41 @@ function calcular(prefijo) {
   const invalido = validar(prefijo);
   if (invalido) return invalido;
   ajustes = { fin: $(prefijo + 'fin').value, umbral: Number($(prefijo + 'umbral').value) };
-  try {
-    resultado = JSON.parse(FaltasWeb.calcular(
-      raw(datos.schedule), raw(datos.calendar), raw(datos.absences), ajustes.fin, hoy, ajustes.umbral));
-  } catch (e) {
-    return msg(e);
-  }
+  convalidadas = [];
+  const fallo = recalcular();
+  if (fallo) return fallo;
   pintarResultados();
   mostrar('resultados');
   return null;
+}
+
+// Calcula con los ajustes y las convalidaciones actuales. Devuelve null si va bien, o el mensaje de error.
+function recalcular() {
+  try {
+    resultado = JSON.parse(FaltasWeb.calcular(
+      raw(datos.schedule), raw(datos.calendar), raw(datos.absences), ajustes.fin, hoy, ajustes.umbral,
+      JSON.stringify(convalidadas)));
+  } catch (e) {
+    return msg(e);
+  }
+  return null;
+}
+
+function convalidar(clave, marcar) {
+  const anterior = convalidadas;
+  convalidadas = marcar ? [...anterior, clave] : anterior.filter((k) => k !== clave);
+  const fallo = recalcular();
+  if (fallo) {
+    convalidadas = anterior;
+    error('No se han podido recalcular las faltas: ' + fallo);
+    return;
+  }
+  error('');
+  pintarResultados();
+  const sel = marcar ? '[data-quitar="' : '[data-conv="';
+  const boton = document.querySelector(sel + CSS.escape(clave) + '"]');
+  if (boton) boton.focus();
+  else { $('total').setAttribute('tabindex', '-1'); $('total').focus(); }
 }
 
 // ---------- Consulta a iPasen (vía Worker) ----------
@@ -252,6 +279,7 @@ function alternarClave() {
 
 function nueva() {
   error('');
+  convalidadas = [];
   $('c-clave').value = '';
   ocultarClave();
   if (origen === 'marcador') formulario(); else mostrar('bienvenida');
@@ -281,7 +309,21 @@ function pintarResultados() {
       bar,
       el('div', { class: 'small' },
         'Margen: ' + num(s.marginHours) + ' h · ' + num(s.justifiedHours) + ' h justificadas · ' +
-        num(s.unjustifiedHours) + ' h sin justificar'));
+        num(s.unjustifiedHours) + ' h sin justificar'),
+      el('button', { type: 'button', class: 'btn btn-ghost btn-small', 'aria-pressed': 'false', 'data-conv': s.label }, 'Convalidada'));
+  }));
+  for (const b of $('modulos').querySelectorAll('[data-conv]')) {
+    b.addEventListener('click', () => convalidar(b.getAttribute('data-conv'), true));
+  }
+
+  $('convalidadas').hidden = !r.convalidated.length;
+  $('convalidadas-lista').replaceChildren(...r.convalidated.map((c) => {
+    const quitar = el('button', { type: 'button', class: 'btn btn-ghost btn-small', 'aria-pressed': 'true', 'data-quitar': c.label }, 'Quitar');
+    quitar.addEventListener('click', () => convalidar(c.label, false));
+    return el('div', { class: 'modulo convalidada' },
+      el('div', { class: 'modulo-head' },
+        el('div', {}, el('div', { class: 'abbr' }, c.abbreviation || c.label), el('div', { class: 'nombre' }, c.name)),
+        quitar));
   }));
 }
 
