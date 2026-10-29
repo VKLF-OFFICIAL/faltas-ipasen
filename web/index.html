@@ -1,110 +1,164 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Faltas iPasen</title>
-<meta name="description" content="Calcula tu porcentaje de faltas por módulo a partir de iPasen, antes de que superes el límite. Consulta con tu usuario de iPasen o usa el marcador para no enviar tu clave.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%233949AB'/%3E%3Cpath d='M12 13h16M12 20h10M12 27h6' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="description" data-i18n-content="meta.description" content="Calcula tu porcentaje de faltas por módulo a partir de iPasen, antes de que superes el límite. Consulta con tu usuario de iPasen o usa el marcador para no enviar tu clave.">
+<meta name="color-scheme" content="light dark">
+<script>
+  // Tema e idioma guardados (preferencias de interfaz, no datos de iPasen), antes de pintar para no parpadear.
+  try {
+    var t = localStorage.getItem('faltas-tema'); if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    var l = localStorage.getItem('faltas-idioma'); if (/^(es|en|fr|de)$/.test(l || '')) document.documentElement.lang = l;
+  } catch (e) {}
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%2310B981'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='40' rx='11' fill='url(%23g)'/%3E%3Cpath d='M11 27V19M18 27V13M25 27v-5' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>
-  <div class="brand">
-    <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#3949AB"/><path d="M12 13h16M12 20h10M12 27h6" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="28" cy="26" r="4" fill="#fff"/></svg>
-    Faltas iPasen
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="marca" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><rect width="40" height="40" rx="11" fill="url(#marca)"/><path d="M11 27V19M18 27V13M25 27v-5" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><circle cx="30.5" cy="13.5" r="3" fill="#fff"/></svg>
+      <span>Faltas iPasen</span>
+    </div>
+    <div class="topbar-tools">
+      <label class="sr-only" for="idioma" data-i18n="top.lang">Idioma</label>
+      <select id="idioma" class="idioma">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+      </select>
+      <button id="tema" type="button" class="icon-btn" aria-pressed="false" data-i18n-aria-label="top.toDark" aria-label="Activar modo oscuro">
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
+      </button>
+    </div>
   </div>
+</header>
 
+<main>
   <div id="error" class="error" role="alert" hidden></div>
 
   <!-- Bienvenida / consulta -->
   <div id="vista-bienvenida" hidden>
-    <h1>Sabe cuántas faltas llevas antes de que sea tarde</h1>
-    <p class="lead">Lee tus faltas de iPasen y calcula el porcentaje de cada módulo o asignatura frente al límite de tu etapa.</p>
+    <div class="hero">
+      <div class="hero-intro">
+        <h1 data-i18n="hero.title">Sabe cuántas faltas llevas antes de que sea tarde</h1>
+        <p class="lead" data-i18n="hero.lead">Lee tus faltas de iPasen y calcula el porcentaje de cada módulo o asignatura frente al límite de tu etapa.</p>
+      </div>
 
-    <form id="vista-consulta" class="card" autocomplete="on" novalidate>
-      <h2>Consulta tus faltas</h2>
-      <div class="field"><label for="c-etapa">Etapa</label><select id="c-etapa" required></select></div>
-      <div class="field"><label for="c-umbral">Umbral de faltas (%)</label><input id="c-umbral" type="number" min="1" max="100" step="0.5" placeholder="p. ej. 15" inputmode="decimal" required></div>
-      <div class="field"><label for="c-fin" id="c-fin-label">Fecha de fin</label><input id="c-fin" type="date" aria-describedby="c-fin-ayuda" required><p id="c-fin-ayuda" class="small" hidden></p></div>
-      <div class="field"><label for="c-usuario">Usuario iPasen</label><input id="c-usuario" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
-      <div class="field"><label for="c-clave">Clave</label><div class="clave-fila"><input id="c-clave" name="password" type="password" autocomplete="current-password" required><button id="c-ver" class="btn btn-ghost ver" type="button" aria-pressed="false" aria-controls="c-clave" aria-label="Mostrar la clave">Ver</button></div></div>
-      <button id="c-enviar" class="btn btn-primary" type="submit">Ver mis faltas</button>
-      <p id="c-estado" class="small" role="status" aria-live="polite"></p>
-      <p class="small">Tu usuario y tu clave se envían a iPasen a través de nuestro servidor solo para esta consulta; no se guardan en ningún sitio.</p>
-    </form>
+      <form id="vista-consulta" class="card form-card" autocomplete="on" novalidate>
+        <h2 data-i18n="form.title">Consulta tus faltas</h2>
+        <div class="field"><label for="c-etapa" data-i18n="f.etapa">Etapa</label><select id="c-etapa" required></select></div>
+        <div class="field-row">
+          <div class="field"><label for="c-umbral" data-i18n="f.umbral">Umbral de faltas (%)</label><input id="c-umbral" type="number" min="1" max="100" step="0.5" data-i18n-placeholder="f.umbralPh" placeholder="p. ej. 15" inputmode="decimal" aria-describedby="c-umbral-ayuda" required><p id="c-umbral-ayuda" class="hint" data-i18n="f.umbralHint">El porcentaje de horas que puedes faltar sin perder la evaluación continua.</p></div>
+          <div class="field"><label for="c-fin" id="c-fin-label">Fecha de fin</label><input id="c-fin" type="date" aria-describedby="c-fin-ayuda" required><p id="c-fin-ayuda" class="hint" hidden></p></div>
+        </div>
+        <div class="field"><label for="c-usuario" data-i18n="f.usuario">Usuario iPasen</label><input id="c-usuario" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+        <div class="field"><label for="c-clave" data-i18n="f.clave">Clave</label><div class="clave-fila"><input id="c-clave" name="password" type="password" autocomplete="current-password" aria-describedby="c-privacidad" required><button id="c-ver" class="ver" type="button" aria-pressed="false" aria-controls="c-clave" aria-label="Mostrar la clave">Ver</button></div>
+          <p id="c-privacidad" class="hint privacidad"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg><span data-i18n="f.privacidad">Tu usuario y tu clave se envían a iPasen a través de nuestro servidor solo para esta consulta; no se guardan en ningún sitio.</span></p>
+        </div>
+        <button id="c-enviar" class="btn btn-primary btn-block" type="submit"><span class="spinner" aria-hidden="true"></span><span class="lbl" data-i18n="f.enviar">Ver mis faltas</span><span class="lbl-busy" data-i18n="f.enviando">Consultando…</span></button>
+        <p id="c-estado" class="estado" role="status" aria-live="polite"></p>
+      </form>
 
-    <div class="actions">
-      <a class="btn btn-ghost" href="https://seneca.juntadeandalucia.es/seneca/jsp/portalpasen/" target="_blank" rel="noopener">Abrir iPasen</a>
-      <a class="btn btn-ghost" href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/releases/latest/download/faltas-ipasen.apk">Descargar la app Android</a>
+      <div class="actions hero-links">
+        <a class="link-btn" href="https://seneca.juntadeandalucia.es/seneca/jsp/portalpasen/" target="_blank" rel="noopener" data-i18n="links.ipasen">Abrir iPasen</a>
+        <a class="link-btn" href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/releases/latest/download/faltas-ipasen.apk" data-i18n="links.apk">Descargar la app Android</a>
+      </div>
     </div>
 
-    <section>
+    <section class="alt">
       <details>
-        <summary>Alternativa sin enviar tu clave a nuestro servidor: marcador</summary>
-        <p class="note">Tu contraseña no pasa por esta web ni por nuestro servidor: el marcador se ejecuta dentro de iPasen con tu sesión abierta, y los datos viajan solo en tu navegador.</p>
-        <ol class="steps">
-          <li>Instala el marcador “Faltas iPasen” (más abajo), una sola vez.</li>
-          <li>Entra en iPasen con tu usuario, como siempre.</li>
-          <li>Pulsa el marcador. Lee tu horario, el calendario y tus faltas, y te trae aquí con los datos.</li>
-          <li>Elige tu etapa y mira tu porcentaje por módulo.</li>
-        </ol>
-        <h3>En ordenador</h3>
-        <p>Arrastra este botón a la barra de marcadores de tu navegador:</p>
-        <p><a id="marcador" class="btn btn-primary drag" href="#">Faltas iPasen</a></p>
-        <h3>En Chrome u Opera en Android</h3>
-        <ol class="steps">
-          <li>Pulsa “Copiar código del marcador”.</li>
-          <li>Guarda cualquier página como marcador (menú ⋮ → estrella).</li>
-          <li>Edita ese marcador: pon de nombre “Faltas iPasen” y pega el código en la URL.</li>
-          <li>Para usarlo, abre iPasen, escribe “Faltas iPasen” en la barra de direcciones y toca el marcador de la lista.</li>
-        </ol>
-        <p><button id="copiar" type="button" class="btn btn-ghost">Copiar código del marcador</button> <span id="copiado" class="small" role="status"></span></p>
+        <summary data-i18n="bm.summary">Alternativa sin enviar tu clave a nuestro servidor: marcador</summary>
+        <div class="alt-body">
+          <p class="note" data-i18n="bm.note">Tu contraseña no pasa por esta web ni por nuestro servidor: el marcador se ejecuta dentro de iPasen con tu sesión abierta, y los datos viajan solo en tu navegador.</p>
+          <ol class="steps">
+            <li data-i18n="bm.s1">Instala el marcador “Faltas iPasen” (más abajo), una sola vez.</li>
+            <li data-i18n="bm.s2">Entra en iPasen con tu usuario, como siempre.</li>
+            <li data-i18n="bm.s3">Pulsa el marcador. Lee tu horario, el calendario y tus faltas, y te trae aquí con los datos.</li>
+            <li data-i18n="bm.s4">Elige tu etapa y mira tu porcentaje por módulo.</li>
+          </ol>
+          <div class="alt-cols">
+            <div>
+              <h3 data-i18n="bm.pc">En ordenador</h3>
+              <p data-i18n="bm.pcText">Arrastra este botón a la barra de marcadores de tu navegador:</p>
+              <p><a id="marcador" class="btn btn-primary drag" href="#">Faltas iPasen</a></p>
+            </div>
+            <div>
+              <h3 data-i18n="bm.android">En Chrome u Opera en Android</h3>
+              <ol class="steps">
+                <li data-i18n="bm.a1">Pulsa “Copiar código del marcador”.</li>
+                <li data-i18n="bm.a2">Guarda cualquier página como marcador (menú ⋮ → estrella).</li>
+                <li data-i18n="bm.a3">Edita ese marcador: pon de nombre “Faltas iPasen” y pega el código en la URL.</li>
+                <li data-i18n="bm.a4">Para usarlo, abre iPasen, escribe “Faltas iPasen” en la barra de direcciones y toca el marcador de la lista.</li>
+              </ol>
+              <p><button id="copiar" type="button" class="btn btn-ghost" data-i18n="bm.copy">Copiar código del marcador</button> <span id="copiado" class="small" role="status"></span></p>
+            </div>
+          </div>
+        </div>
       </details>
     </section>
   </div>
 
   <!-- Formulario (flujo del marcador) -->
-  <form id="vista-datos" hidden novalidate>
-    <h1>Tus datos</h1>
-    <p class="lead">Ya tengo tu horario, el calendario y tus faltas. Elige tu etapa para calcular el porcentaje.</p>
-    <div class="field"><label for="etapa">Etapa</label><select id="etapa" required></select></div>
-    <div class="field"><label for="umbral">Umbral de faltas (%)</label><input id="umbral" type="number" min="1" max="100" step="0.5" placeholder="p. ej. 15" inputmode="decimal" required></div>
-    <div class="field"><label for="fin" id="fin-label">Fecha de fin</label><input id="fin" type="date" aria-describedby="fin-ayuda" required><p id="fin-ayuda" class="small" hidden></p></div>
-    <button class="btn btn-primary" type="submit">Ver resultados</button>
+  <form id="vista-datos" class="narrow" hidden novalidate>
+    <h1 data-i18n="datos.title">Tus datos</h1>
+    <p class="lead" data-i18n="datos.lead">Ya tengo tu horario, el calendario y tus faltas. Elige tu etapa para calcular el porcentaje.</p>
+    <div class="card form-card">
+      <div class="field"><label for="etapa" data-i18n="f.etapa">Etapa</label><select id="etapa" required></select></div>
+      <div class="field-row">
+        <div class="field"><label for="umbral" data-i18n="f.umbral">Umbral de faltas (%)</label><input id="umbral" type="number" min="1" max="100" step="0.5" data-i18n-placeholder="f.umbralPh" placeholder="p. ej. 15" inputmode="decimal" aria-describedby="umbral-ayuda" required><p id="umbral-ayuda" class="hint" data-i18n="f.umbralHint">El porcentaje de horas que puedes faltar sin perder la evaluación continua.</p></div>
+        <div class="field"><label for="fin" id="fin-label">Fecha de fin</label><input id="fin" type="date" aria-describedby="fin-ayuda" required><p id="fin-ayuda" class="hint" hidden></p></div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit"><span class="lbl" data-i18n="datos.enviar">Ver resultados</span></button>
+    </div>
   </form>
 
   <!-- Resultados -->
   <div id="vista-resultados" hidden>
     <div class="actions top">
-      <button id="cambiar" type="button" class="btn btn-ghost">Nueva consulta</button>
-      <button id="historial-btn" type="button" class="btn btn-ghost">Ver historial</button>
+      <button id="cambiar" type="button" class="btn btn-ghost" data-i18n="r.nueva">Nueva consulta</button>
+      <button id="historial-btn" type="button" class="btn btn-ghost" data-i18n="r.historial">Ver historial</button>
     </div>
-    <div class="card">
-      <p class="label">Total del curso</p>
+    <div class="resumen">
+      <div class="resumen-top">
+        <p class="label" data-i18n="r.total">Total del curso</p>
+        <span id="total-estado" class="chip"></span>
+      </div>
       <p class="total" id="total"></p>
-      <p class="small" id="total-detalle"></p>
+      <div class="regla" aria-hidden="true"><span id="total-barra" class="regla-fill"></span><span class="regla-tope"></span></div>
+      <p class="regla-escala"><span id="total-limite"></span></p>
+      <div class="resumen-datos">
+        <p id="total-detalle"></p>
+        <div class="dias">
+          <p id="total-dias"></p>
+          <div class="progreso" aria-hidden="true"><span id="total-dias-barra"></span></div>
+        </div>
+      </div>
     </div>
     <details id="aviso" class="note" hidden><summary id="aviso-resumen"></summary><ul id="aviso-lista"></ul></details>
-    <div id="modulos"></div>
-    <section id="convalidadas" hidden><h2>Convalidadas</h2><p class="small">No cuentan en el total ni en el historial.</p><div id="convalidadas-lista"></div></section>
+    <div id="modulos" class="grid"></div>
+    <section id="convalidadas" hidden><h2 data-i18n="r.convTitle">Convalidadas</h2><p class="small" data-i18n="r.convNote">No cuentan en el total ni en el historial.</p><div id="convalidadas-lista" class="grid"></div></section>
   </div>
 
   <!-- Historial -->
-  <div id="vista-historial" hidden>
-    <div class="actions top"><button id="volver" type="button" class="btn btn-ghost">Volver a los resultados</button></div>
-    <h1>Historial</h1>
-    <div class="field"><label for="filtro">Módulo</label><select id="filtro"></select></div>
+  <div id="vista-historial" class="narrow" hidden>
+    <div class="actions top"><button id="volver" type="button" class="btn btn-ghost" data-i18n="h.volver">Volver a los resultados</button></div>
+    <h1 data-i18n="h.title">Historial</h1>
+    <div class="field filtro"><label for="filtro" data-i18n="h.filtro">Módulo</label><select id="filtro"></select></div>
     <div id="dias"></div>
   </div>
 
   <footer>
-    No es una app oficial ni está relacionada con la Junta de Andalucía. Si consultas con tu usuario, tus datos pasan por nuestro servidor solo durante la consulta y no se guardan; con el marcador no pasan por ningún servidor.
-    · <a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/blob/master/LICENSE">Licencia no comercial</a>
-    · <a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen">Código</a>
+    <p data-i18n="footer.text">No es una app oficial ni está relacionada con la Junta de Andalucía. Si consultas con tu usuario, tus datos pasan por nuestro servidor solo durante la consulta y no se guardan; con el marcador no pasan por ningún servidor.</p>
+    <p class="footer-links"><a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen/blob/master/LICENSE" data-i18n="footer.license">Licencia no comercial</a><a href="https://github.com/VKLF-OFFICIAL/faltas-ipasen" data-i18n="footer.code">Código</a></p>
   </footer>
 </main>
 <script type="module" src="app.js"></script>
@@ -114,10 +168,16 @@
   setTimeout(function () {
     var select = document.querySelector('form select');
     if (!select || select.options.length) return;
+    var textos = {
+      es: 'La web no ha terminado de cargar. Recárgala con Ctrl+F5 (en el móvil, cierra la pestaña y vuelve a abrirla). Si sigue igual, prueba con Chrome o Firefox actualizados.',
+      en: 'The website hasn’t finished loading. Reload it with Ctrl+F5 (on a phone, close the tab and open it again). If nothing changes, try an up-to-date Chrome or Firefox.',
+      fr: 'Le site n’a pas fini de charger. Recharge-le avec Ctrl+F5 (sur mobile, ferme l’onglet et rouvre-le). Si rien ne change, essaie Chrome ou Firefox à jour.',
+      de: 'Die Website ist nicht fertig geladen. Lade sie mit Strg+F5 neu (am Handy den Tab schließen und wieder öffnen). Wenn sich nichts ändert, nutze ein aktuelles Chrome oder Firefox.'
+    };
     var aviso = document.createElement('p');
     aviso.setAttribute('role', 'alert');
     aviso.className = 'aviso-carga';
-    aviso.textContent = 'La web no ha terminado de cargar. Recárgala con Ctrl+F5 (en el móvil, cierra la pestaña y vuelve a abrirla). Si sigue igual, prueba con Chrome o Firefox actualizados.';
+    aviso.textContent = textos[document.documentElement.lang] || textos.es;
     select.closest('form').prepend(aviso);
   }, 5000);
 </script>
