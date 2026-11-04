@@ -6,7 +6,7 @@ import { unpack } from './lib/transfer.mjs';
 import { entradasDe } from './lib/history.mjs';
 import { readSchedule, readCalendar, readAbsences } from './readers/readers.mjs';
 import { WORKER_URL } from './config.js';
-import { t, setLang, getLang, normalizeLang, fmtNum, fmtPct, fmtDate, corteKey } from './lib/i18n.mjs';
+import { t, setLang, getLang, normalizeLang, fmtNum, fmtPct, fmtDate } from './lib/i18n.mjs';
 
 const $ = (id) => document.getElementById(id);
 const VISTAS = ['bienvenida', 'datos', 'resultados', 'historial'];
@@ -15,7 +15,6 @@ const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).form
 const raw = (d) => JSON.stringify({ ok: true, data: d });
 
 let datos = null;   // { schedule, calendar, absences }, solo en memoria
-let niveles = [];
 let resultado = null;
 let ajustes = { fin: '', umbral: 0 };
 let convalidadas = []; // claves de módulos convalidados, solo en memoria
@@ -60,7 +59,6 @@ function aplicarIdioma(lang) {
   for (const e of document.querySelectorAll('[data-i18n-content]')) e.setAttribute('content', t(e.getAttribute('data-i18n-content')));
   pintarTema();
   pintarVer();
-  if (niveles.length) pintarNiveles();
   $('copiado').textContent = '';
   if (textoError) error(textoError);
   if (textoEstado) estado(textoEstado);
@@ -116,7 +114,6 @@ function bienvenida() {
       $('copiado').textContent = t('bm.copyFail');
     }
   });
-  cargarNiveles();
   mostrar('bienvenida');
 }
 
@@ -147,46 +144,14 @@ async function importar(fragmento) {
 
 // ---------- Formulario ----------
 
-function cargarNiveles() {
-  if (niveles.length) return;
-  niveles = JSON.parse(FaltasWeb.niveles(hoy));
-  pintarNiveles();
-}
-
-// Nombre de la etapa en el idioma actual (por id); si no hay traducción, el que da FaltasWeb.
-const nombreNivel = (n) => (t('nivel.' + n.id) === 'nivel.' + n.id ? n.label : t('nivel.' + n.id));
-
-// Rellena (o vuelve a rellenar al cambiar de idioma) las etapas, conservando la elegida.
-function pintarNiveles() {
-  for (const p of ['', 'c-']) {
-    const actual = $(p + 'etapa').value;
-    $(p + 'etapa').replaceChildren(el('option', { value: '' }, t('f.etapaElige')),
-      ...niveles.map((n) => el('option', { value: n.id }, nombreNivel(n))));
-    $(p + 'etapa').value = actual;
-    etapaCambiada(p);
-  }
-}
-
 function formulario() {
   error('');
-  cargarNiveles();
   origen = 'marcador';
   mostrar('datos');
 }
 
-// Al elegir etapa solo cambia la etiqueta y la pista de la fecha; umbral y fecha los escribe la persona.
-const fechaCorta = (iso) => fmtDate(iso, { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-function etapaCambiada(p) {
-  const n = niveles.find((x) => x.id === $(p + 'etapa').value);
-  $(p + 'fin-label').textContent = n ? t(corteKey(n.cutoffLabel)) : t('f.fin');
-  $(p + 'fin-ayuda').hidden = !n;
-  $(p + 'fin-ayuda').textContent = n ? t('f.finHabitual', { fecha: fechaCorta(n.cutoff) }) : '';
-}
-
 // Devuelve null si el formulario es correcto, o la clave del mensaje de error.
 function validar(p) {
-  if (!$(p + 'etapa').value) return 'e.etapa';
   const u = $(p + 'umbral').value.trim();
   const umbral = Number(u);
   if (!u || !Number.isFinite(umbral) || umbral < 1 || umbral > 100) return 'e.umbral';
@@ -448,8 +413,6 @@ function pintarHistorial() {
 
 // ---------- Arranque ----------
 
-$('etapa').addEventListener('change', () => etapaCambiada(''));
-$('c-etapa').addEventListener('change', () => etapaCambiada('c-'));
 $('c-ver').addEventListener('click', alternarClave);
 $('tema').addEventListener('click', alternarTema);
 $('idioma').addEventListener('change', () => {

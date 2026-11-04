@@ -49,16 +49,15 @@
   <div id="vista-bienvenida" hidden>
     <div class="hero">
       <div class="hero-intro">
-        <h1 data-i18n="hero.title">Sabe cuántas faltas llevas antes de que sea tarde</h1>
-        <p class="lead" data-i18n="hero.lead">Lee tus faltas de iPasen y calcula el porcentaje de cada módulo o asignatura frente al límite de tu etapa.</p>
+        <h1 data-i18n="hero.title">Controla cuántas faltas llevas antes de que sea tarde</h1>
+        <p class="lead" data-i18n="hero.lead">Lee tus faltas de iPasen y calcula el porcentaje de cada módulo o asignatura frente a tu límite.</p>
       </div>
 
       <form id="vista-consulta" class="card form-card" autocomplete="on" novalidate>
         <h2 data-i18n="form.title">Consulta tus faltas</h2>
-        <div class="field"><label for="c-etapa" data-i18n="f.etapa">Etapa</label><select id="c-etapa" required></select></div>
         <div class="field-row">
           <div class="field"><label for="c-umbral" data-i18n="f.umbral">Umbral de faltas (%)</label><input id="c-umbral" type="number" min="1" max="100" step="0.5" data-i18n-placeholder="f.umbralPh" placeholder="p. ej. 15" inputmode="decimal" aria-describedby="c-umbral-ayuda" required><p id="c-umbral-ayuda" class="hint" data-i18n="f.umbralHint">El porcentaje de horas que puedes faltar sin perder la evaluación continua.</p></div>
-          <div class="field"><label for="c-fin" id="c-fin-label">Fecha de fin</label><input id="c-fin" type="date" aria-describedby="c-fin-ayuda" required><p id="c-fin-ayuda" class="hint" hidden></p></div>
+          <div class="field"><label for="c-fin" data-i18n="f.fin">Fin de clases o inicio FCT</label><input id="c-fin" type="date" aria-describedby="c-fin-ayuda" required><p id="c-fin-ayuda" class="hint" data-i18n="f.finHint">Tus faltas cuentan hasta esta fecha.</p></div>
         </div>
         <div class="field"><label for="c-usuario" data-i18n="f.usuario">Usuario iPasen</label><input id="c-usuario" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
         <div class="field"><label for="c-clave" data-i18n="f.clave">Clave</label><div class="clave-fila"><input id="c-clave" name="password" type="password" autocomplete="current-password" aria-describedby="c-privacidad" required><button id="c-ver" class="ver" type="button" aria-pressed="false" aria-controls="c-clave" aria-label="Mostrar la clave">Ver</button></div>
@@ -83,7 +82,7 @@
             <li data-i18n="bm.s1">Instala el marcador “Faltas iPasen” (más abajo), una sola vez.</li>
             <li data-i18n="bm.s2">Entra en iPasen con tu usuario, como siempre.</li>
             <li data-i18n="bm.s3">Pulsa el marcador. Lee tu horario, el calendario y tus faltas, y te trae aquí con los datos.</li>
-            <li data-i18n="bm.s4">Elige tu etapa y mira tu porcentaje por módulo.</li>
+            <li data-i18n="bm.s4">Indica tu umbral y la fecha de fin, y mira tu porcentaje por módulo.</li>
           </ol>
           <div class="alt-cols">
             <div>
@@ -110,12 +109,11 @@
   <!-- Formulario (flujo del marcador) -->
   <form id="vista-datos" class="narrow" hidden novalidate>
     <h1 data-i18n="datos.title">Tus datos</h1>
-    <p class="lead" data-i18n="datos.lead">Ya tengo tu horario, el calendario y tus faltas. Elige tu etapa para calcular el porcentaje.</p>
+    <p class="lead" data-i18n="datos.lead">Ya tengo tu horario, el calendario y tus faltas. Completa estos datos para calcular el porcentaje.</p>
     <div class="card form-card">
-      <div class="field"><label for="etapa" data-i18n="f.etapa">Etapa</label><select id="etapa" required></select></div>
       <div class="field-row">
         <div class="field"><label for="umbral" data-i18n="f.umbral">Umbral de faltas (%)</label><input id="umbral" type="number" min="1" max="100" step="0.5" data-i18n-placeholder="f.umbralPh" placeholder="p. ej. 15" inputmode="decimal" aria-describedby="umbral-ayuda" required><p id="umbral-ayuda" class="hint" data-i18n="f.umbralHint">El porcentaje de horas que puedes faltar sin perder la evaluación continua.</p></div>
-        <div class="field"><label for="fin" id="fin-label">Fecha de fin</label><input id="fin" type="date" aria-describedby="fin-ayuda" required><p id="fin-ayuda" class="hint" hidden></p></div>
+        <div class="field"><label for="fin" data-i18n="f.fin">Fin de clases o inicio FCT</label><input id="fin" type="date" aria-describedby="fin-ayuda" required><p id="fin-ayuda" class="hint" data-i18n="f.finHint">Tus faltas cuentan hasta esta fecha.</p></div>
       </div>
       <button class="btn btn-primary btn-block" type="submit"><span class="lbl" data-i18n="datos.enviar">Ver resultados</span></button>
     </div>

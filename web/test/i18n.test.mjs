@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { DICT, LANGS, t, setLang, normalizeLang, fmtPct, corteKey } from '../lib/i18n.mjs';
+import { DICT, LANGS, t, setLang, normalizeLang, fmtPct } from '../lib/i18n.mjs';
 
 const claves = Object.keys(DICT.es);
 
@@ -25,6 +25,12 @@ test('index.html solo usa claves que existen', () => {
   for (const k of usadas) assert.ok(k in DICT.es, k);
 });
 
+test('el formulario no pide la etapa', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /etapa/i);
+  for (const l of LANGS) assert.ok(!('f.etapa' in DICT[l]), l);
+});
+
 test('t sustituye variables y setLang cae al español si el idioma no existe', () => {
   setLang('en');
   assert.equal(t('r.dias', { n: 3, total: 10 }), '3 of 10 school days');
@@ -33,12 +39,10 @@ test('t sustituye variables y setLang cae al español si el idioma no existe', (
   assert.equal(t('no.existe'), 'no.existe');
 });
 
-test('porcentajes con el formato del idioma y etiquetas de fecha de fin', () => {
+test('porcentajes con el formato del idioma', () => {
   setLang('es');
   assert.match(fmtPct(18.18), /^18,2\s%$/);
   setLang('en');
   assert.equal(fmtPct(18.18), '18.2%');
   setLang('es');
-  assert.equal(corteKey('Fin de clases (inicio FCT)'), 'corte.fct');
-  assert.equal(corteKey('Fin del curso'), 'corte.curso');
 });
